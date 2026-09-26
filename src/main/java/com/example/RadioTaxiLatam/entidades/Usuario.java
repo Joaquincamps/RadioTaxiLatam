@@ -1,11 +1,14 @@
 package com.example.RadioTaxiLatam.entidades;
 
+import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 import org.hibernate.usertype.UserType;
 
 @Entity
 @Data
+@Builder
 public class Usuario {
 
     @Id
@@ -18,5 +21,5 @@ public class Usuario {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserType tipo;
+    private TipoUsuario tipo;
 }

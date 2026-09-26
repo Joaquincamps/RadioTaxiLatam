@@ -1,6 +1,6 @@
 package com.example.RadioTaxiLatam.Enum;
 
-public enum UserType {
+public enum TipoUsuario {
     CLIENTE,
     CONDUCTOR
 }

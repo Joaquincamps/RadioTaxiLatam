@@ -1,6 +1,6 @@
 package com.example.RadioTaxiLatam.Dto;
 
-import com.example.RadioTaxiLatam.Enum.UserType;
+import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,5 +16,5 @@ public class UsuarioRequestDTO {
 
     private String telefono;
 
-    private UserType tipo;
+    private TipoUsuario tipo;
 }
