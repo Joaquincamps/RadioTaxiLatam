@@ -45,7 +45,7 @@ public class UsuarioServicio {
         return usuarioRepository.findAll();
     }
 
-    public void eliminarUsuario(Long id) {
+    public void eliminarUsuarioPorId(Long id) {
         Usuario usuario = usuarioRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("No existe el usuario")
         );

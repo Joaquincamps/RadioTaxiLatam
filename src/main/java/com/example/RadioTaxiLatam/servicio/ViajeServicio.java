@@ -150,10 +150,11 @@ public class ViajeServicio {
         if (viaje.getEstado() == DriverStatus.ACEPTADO ||
                 viaje.getEstado() == DriverStatus.EN_CURSO ||
                 viaje.getEstado() == DriverStatus.ASIGNADO) {
-            throw new RuntimeException("El estado del viaje tiene que ser aceptado");
+            viaje.setEstado(DriverStatus.CANCELADO);
+        }else{
+            throw new RuntimeException("El viaje no se puede cancelar.");
         }
 
-        viaje.setEstado(DriverStatus.EN_CURSO);
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
         return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
