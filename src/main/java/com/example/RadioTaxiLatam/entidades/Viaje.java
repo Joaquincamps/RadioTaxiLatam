@@ -2,10 +2,12 @@ package com.example.RadioTaxiLatam.entidades;
 
 import com.example.RadioTaxiLatam.Enum.DriverStatus;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 
 @Entity
 @Data
+@Builder
 public class Viaje {
 
     @Id
