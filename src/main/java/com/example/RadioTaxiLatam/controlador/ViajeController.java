@@ -17,7 +17,7 @@ public class ViajeController {
     private ViajeServicio viajeServicio;
 
     @PostMapping("/crear")
-    public ResponseEntity<ViajeDTO> crearViaje(@RequestParam ViajeDTO viajeDTO) {
+    public ResponseEntity<ViajeDTO> crearViaje(@RequestBody ViajeDTO viajeDTO) {
         return ResponseEntity.ok(viajeServicio.crearViaje(viajeDTO));
     }
 

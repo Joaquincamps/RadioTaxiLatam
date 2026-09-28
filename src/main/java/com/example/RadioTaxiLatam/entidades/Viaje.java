@@ -2,12 +2,16 @@ package com.example.RadioTaxiLatam.entidades;
 
 import com.example.RadioTaxiLatam.Enum.DriverStatus;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Viaje {
 
     @Id
@@ -19,7 +23,7 @@ public class Viaje {
     private Usuario cliente;
 
     @ManyToOne
-    @JoinColumn(name = "conductor_id", nullable = false)
+    @JoinColumn(name = "conductor_id", nullable = true)
     private Usuario conductor;
 
     @Column(nullable = false)

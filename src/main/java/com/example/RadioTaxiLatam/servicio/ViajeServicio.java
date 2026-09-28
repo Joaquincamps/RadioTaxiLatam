@@ -58,6 +58,19 @@ public class ViajeServicio {
             throw new RuntimeException("El viaje no está buscando conductor.");
         }
 
+        List<Viaje> viajes = viajeRepository.findAll();
+        for (Viaje v : viajes) {
+            if (v.getConductor() != null) {
+                if (v.getConductor().getId().equals(conductorId)) {
+                    if (v.getEstado() == DriverStatus.ASIGNADO ||
+                            v.getEstado() == DriverStatus.ACEPTADO ||
+                            v.getEstado() == DriverStatus.EN_CURSO) {
+                        throw new RuntimeException("No se puede asignar el viaje");
+                    }
+                }
+            }
+        }
+
         viaje.setConductor(conductor);
         viaje.setEstado(DriverStatus.ASIGNADO);
 
@@ -151,7 +164,7 @@ public class ViajeServicio {
                 viaje.getEstado() == DriverStatus.EN_CURSO ||
                 viaje.getEstado() == DriverStatus.ASIGNADO) {
             viaje.setEstado(DriverStatus.CANCELADO);
-        }else{
+        } else {
             throw new RuntimeException("El viaje no se puede cancelar.");
         }
 

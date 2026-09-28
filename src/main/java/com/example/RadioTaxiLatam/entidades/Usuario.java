@@ -2,12 +2,15 @@ package com.example.RadioTaxiLatam.entidades;
 
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import org.hibernate.usertype.UserType;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 public class Usuario {
 
