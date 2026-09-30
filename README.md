@@ -10,23 +10,27 @@ historial de servicios.
 **Stack:** Kotlin, Jetpack Compose (Material 3), Retrofit + kotlinx.serialization, DataStore,
 servicio en primer plano con ubicación (FusedLocation). minSdk 26 (Android 8), targetSdk 36.
 
-## Probar sin backend (modo demo)
+## Elegir backend
 
-Por defecto `useMockApi=true` en `gradle.properties`: la app usa un backend simulado con direcciones de Lima.
-Inicia sesión con cualquier teléfono y la contraseña `1234`, activa **Disponible** y cada ~15 s llegará una carrera.
+En `gradle.properties`, `apiMode` decide con qué habla la app (recompila tras cambiarlo):
 
-## Conectar con el backend real
+| `apiMode` | Backend | Login |
+|---|---|---|
+| `mock` | Simulado dentro de la app, con direcciones de Lima | Cualquier teléfono, contraseña `1234` |
+| `mvp` | El backend actual de Joaquín (`/usuarios`, `/viaje`) | Teléfono de un conductor registrado, sin contraseña |
+| `contract` | Backend completo según [API_CONTRACT.md](API_CONTRACT.md) | Teléfono y contraseña |
 
-En `gradle.properties`:
-
-```properties
-useMockApi=false
-apiBaseUrl=http://10.0.2.2:8080/   # emulador → localhost de tu PC
-# con móvil físico usa la IP de tu PC en la wifi, p. ej. http://192.168.1.50:8080/
-# en producción, https://api.tudominio.com/
-```
-
+`apiBaseUrl` es la URL del servidor (la `/` final es obligatoria). Emulador contra tu PC: `http://10.0.2.2:8080/`.
 HTTP sin TLS solo está permitido en la build debug.
+
+### Modo `mvp`: qué se simula en el móvil
+
+El backend de Joaquín aún no tiene todo lo que usa la app; `data/mvp/JoaquinTaxiApi.kt` lo traduce:
+
+- **Viajes nuevos** = viajes en estado `ASIGNADO` a ese conductor (hay que asignarlos con `/viaje/asignar/...`).
+- **Aceptar / Iniciar / Finalizar** llaman a sus rutas reales.
+- **Disponible**, **Rechazar** y **Llegué** solo existen en el móvil; Rechazar oculta el viaje, no lo cancela.
+- La ubicación no se envía.
 
 ## Compilar
 

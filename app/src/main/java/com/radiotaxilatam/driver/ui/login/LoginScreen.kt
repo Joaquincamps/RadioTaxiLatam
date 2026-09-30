@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.radiotaxilatam.driver.BuildConfig
 import com.radiotaxilatam.driver.R
+import com.radiotaxilatam.driver.TaxiApp
 import com.radiotaxilatam.driver.data.DriverRepository
 import com.radiotaxilatam.driver.ui.AppViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,8 +56,9 @@ class LoginViewModel(private val repository: DriverRepository) : ViewModel() {
     val state: StateFlow<LoginUiState> = _state
 
     fun login(phone: String, password: String) {
-        if (phone.isBlank() || password.isBlank()) {
-            _state.update { it.copy(error = "Ingresa tu teléfono y contraseña") }
+        val passwordRequired = BuildConfig.API_MODE != TaxiApp.API_MODE_MVP
+        if (phone.isBlank() || (passwordRequired && password.isBlank())) {
+            _state.update { it.copy(error = if (passwordRequired) "Ingresa tu teléfono y contraseña" else "Ingresa tu teléfono") }
             return
         }
         _state.update { it.copy(loading = true, error = null) }
@@ -133,10 +135,15 @@ fun LoginScreen(
                     Text("Entrar")
                 }
             }
-            if (BuildConfig.USE_MOCK_API) {
+            val modeHint = when (BuildConfig.API_MODE) {
+                TaxiApp.API_MODE_MOCK -> "Modo demo: cualquier teléfono, contraseña 1234"
+                TaxiApp.API_MODE_MVP -> "Modo pruebas: entra con el teléfono del conductor (sin contraseña)"
+                else -> null
+            }
+            if (modeHint != null) {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Modo demo: cualquier teléfono, contraseña 1234",
+                    modeHint,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

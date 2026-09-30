@@ -8,7 +8,10 @@ import android.media.RingtoneManager
 import com.radiotaxilatam.driver.data.DriverRepository
 import com.radiotaxilatam.driver.data.SessionStore
 import com.radiotaxilatam.driver.data.mock.MockTaxiApi
+import com.radiotaxilatam.driver.data.mvp.JoaquinApi
+import com.radiotaxilatam.driver.data.mvp.JoaquinTaxiApi
 import com.radiotaxilatam.driver.data.remote.ApiFactory
+import com.radiotaxilatam.driver.data.remote.TaxiApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,15 +33,16 @@ class TaxiApp : Application() {
         // Lectura única y pequeña del token al arrancar para decidir la pantalla inicial.
         runBlocking { session.load() }
 
-        val api = if (BuildConfig.USE_MOCK_API) {
-            MockTaxiApi()
-        } else {
-            ApiFactory.create(session) {
-                appScope.launch {
-                    repository.clearLocalSession()
-                    _sessionExpired.emit(Unit)
-                }
+        val onUnauthorized: () -> Unit = {
+            appScope.launch {
+                repository.clearLocalSession()
+                _sessionExpired.emit(Unit)
             }
+        }
+        val api: TaxiApi = when (BuildConfig.API_MODE) {
+            API_MODE_MVP -> JoaquinTaxiApi(ApiFactory.retrofit(session, onUnauthorized).create(JoaquinApi::class.java), session)
+            API_MODE_CONTRACT -> ApiFactory.retrofit(session, onUnauthorized).create(TaxiApi::class.java)
+            else -> MockTaxiApi()
         }
         repository = DriverRepository(api, session)
         createNotificationChannels()
@@ -65,5 +69,10 @@ class TaxiApp : Application() {
     companion object {
         const val CHANNEL_ONLINE = "online"
         const val CHANNEL_OFFERS = "offers"
+
+        // Valores de apiMode en gradle.properties
+        const val API_MODE_MOCK = "mock"
+        const val API_MODE_MVP = "mvp"
+        const val API_MODE_CONTRACT = "contract"
     }
 }
