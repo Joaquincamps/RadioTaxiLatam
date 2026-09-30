@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RadioTaxi Conductor</string>
+    <string name="channel_online_name">Conductor en línea</string>
+    <string name="channel_offers_name">Nuevas carreras</string>
+</resources>

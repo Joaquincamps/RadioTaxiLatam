@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono provisional: coche sobre fondo amarillo taxi. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#FFC107" android:pathData="M24,0a24,24 0,1 1,0 48a24,24 0,1 1,0 -48z" />
+    <path android:fillColor="#212121"
+        android:pathData="M33.9,15.0C33.5,13.8 32.4,13.0 31.0,13.0H17.0C15.6,13.0 14.5,13.8 14.1,15.0L11.0,24.0V36.0C11.0,36.6 11.4,37.0 12.0,37.0H14.0C14.6,37.0 15.0,36.6 15.0,36.0V34.0H33.0V36.0C33.0,36.6 33.4,37.0 34.0,37.0H36.0C36.6,37.0 37.0,36.6 37.0,36.0V24.0L33.9,15.0ZM17.0,30.0C15.9,30.0 15.0,29.1 15.0,28.0S15.9,26.0 17.0,26.0S19.0,26.9 19.0,28.0S18.1,30.0 17.0,30.0ZM31.0,30.0C29.9,30.0 29.0,29.1 29.0,28.0S29.9,26.0 31.0,26.0S33.0,26.9 33.0,28.0S32.1,30.0 31.0,30.0ZM15.0,22.0L17.0,16.0H31.0L33.0,22.0H15.0Z" />
+</vector>
