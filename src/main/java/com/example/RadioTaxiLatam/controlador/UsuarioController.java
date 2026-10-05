@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.controlador;
 
+import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
 import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.servicio.UsuarioServicio;
@@ -22,9 +23,10 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioServicio.crearUsuario(usuarioDTO));
     }
 
-    @GetMapping("/usuario/{id}")
-    public ResponseEntity<UsuarioDTO> obtenerUsuarioPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(usuarioServicio.obtenerUsuarioPorId(id));
+    @PutMapping("/usuario/{id}/ubicacion")
+    public ResponseEntity<UsuarioDTO> obtenerUsuarioPorId(@PathVariable Long id,
+                                                          @RequestBody UbicacionDTO ubicacionDTO) {
+        return ResponseEntity.ok(usuarioServicio.obtenerUsuarioPorId(id, ubicacionDTO));
     }
 
     @GetMapping("/listar")

@@ -25,4 +25,6 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoUsuario tipo;
+
+    private Double latitud, longitud;
 }

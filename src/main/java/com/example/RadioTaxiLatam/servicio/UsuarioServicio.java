@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.servicio;
 
+import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
 import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
@@ -38,6 +39,8 @@ public class UsuarioServicio {
                 .nombre(usuario.getNombre())
                 .telefono(usuario.getTelefono())
                 .tipo(usuario.getTipo())
+                .latitud(usuario.getLatitud())
+                .longitud(usuario.getLongitud())
                 .build();
     }
 

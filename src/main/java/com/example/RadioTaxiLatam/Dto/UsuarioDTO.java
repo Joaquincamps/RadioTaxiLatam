@@ -19,4 +19,7 @@ public class UsuarioDTO {
     private String telefono;
 
     private TipoUsuario tipo;
+
+    private Double latitud, longitud;
+
 }
