@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.controlador;
 
+import com.example.RadioTaxiLatam.Dto.LoginDTO;
 import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
 import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
 import com.example.RadioTaxiLatam.entidades.Usuario;
@@ -38,5 +39,10 @@ public class UsuarioController {
     public ResponseEntity<Void> eliminarUsuarioPorId(@PathVariable Long id) {
         usuarioServicio.eliminarUsuarioPorId(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/api/auth/login")
+    public ResponseEntity<UsuarioDTO> login(@RequestBody LoginDTO loginDTO) {
+        return ResponseEntity.ok(usuarioServicio.login(loginDTO));
     }
 }

@@ -1,7 +1,9 @@
 package com.example.RadioTaxiLatam.servicio;
 
+import com.example.RadioTaxiLatam.Dto.LoginDTO;
 import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
 import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
+import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,5 +55,22 @@ public class UsuarioServicio {
                 () -> new RuntimeException("No existe el usuario")
         );
         usuarioRepository.deleteById(id);
+    }
+
+    public UsuarioDTO login(LoginDTO loginDTO) {
+        Usuario usuario = usuarioRepository.findByTelefono(loginDTO.getMovil());
+        if (usuario.getTipo() != TipoUsuario.CONDUCTOR) {
+            throw new RuntimeException("El usuario no es conductor");
+        }
+
+        if (loginDTO.getPassword().equals(usuario.getPassword())) {
+            return UsuarioDTO.builder()
+                    .id(usuario.getId())
+                    .nombre(usuario.getNombre())
+                    .telefono(usuario.getTelefono())
+                    .tipo(usuario.getTipo())
+                    .build();
+        }
+        return null;
     }
 }
