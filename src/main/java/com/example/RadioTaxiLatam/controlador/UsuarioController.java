@@ -25,9 +25,8 @@ public class UsuarioController {
     }
 
     @PutMapping("/usuario/{id}/ubicacion")
-    public ResponseEntity<UsuarioDTO> obtenerUsuarioPorId(@PathVariable Long id,
-                                                          @RequestBody UbicacionDTO ubicacionDTO) {
-        return ResponseEntity.ok(usuarioServicio.obtenerUsuarioPorId(id, ubicacionDTO));
+    public ResponseEntity<UsuarioDTO> obtenerUsuarioPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(usuarioServicio.obtenerUsuarioPorId(id));
     }
 
     @GetMapping("/listar")
