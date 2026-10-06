@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.servicio;
 
+import com.example.RadioTaxiLatam.Dto.ConductorDTO;
 import com.example.RadioTaxiLatam.Dto.LoginDTO;
 import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
 import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
@@ -58,7 +59,7 @@ public class UsuarioServicio {
         usuarioRepository.deleteById(id);
     }
 
-    public UsuarioDTO login(LoginDTO loginDTO) {
+    public ConductorDTO login(LoginDTO loginDTO) {
         Usuario usuario = usuarioRepository.findByTelefono(loginDTO.getMovil());
         if (usuario.getTipo() != TipoUsuario.CONDUCTOR) {
             throw new RuntimeException("El usuario no es conductor");
@@ -66,11 +67,13 @@ public class UsuarioServicio {
 
         if (loginDTO.getPassword().equals(usuario.getPassword())) {
             usuario.setEstado(EstadoConductor.AVAILABLE);
-            return UsuarioDTO.builder()
+            usuarioRepository.save(usuario);
+            return ConductorDTO.builder()
                     .id(usuario.getId())
                     .nombre(usuario.getNombre())
                     .telefono(usuario.getTelefono())
-                    .tipo(usuario.getTipo())
+                    .matricula(usuario.getMatricula())
+                    .modeloVehiculo(usuario.getModeloVehiculo())
                     .build();
         }
         return null;

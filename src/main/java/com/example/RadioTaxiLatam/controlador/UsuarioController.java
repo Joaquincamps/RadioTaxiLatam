@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.controlador;
 
+import com.example.RadioTaxiLatam.Dto.ConductorDTO;
 import com.example.RadioTaxiLatam.Dto.LoginDTO;
 import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
 import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
@@ -41,7 +42,7 @@ public class UsuarioController {
     }
 
     @PostMapping("/api/auth/login")
-    public ResponseEntity<UsuarioDTO> login(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<ConductorDTO> login(@RequestBody LoginDTO loginDTO) {
         return ResponseEntity.ok(usuarioServicio.login(loginDTO));
     }
 }
