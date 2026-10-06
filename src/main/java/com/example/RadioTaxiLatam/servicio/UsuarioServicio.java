@@ -4,7 +4,9 @@ import com.example.RadioTaxiLatam.Dto.*;
 import com.example.RadioTaxiLatam.Enum.EstadoConductor;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
+import com.example.RadioTaxiLatam.entidades.Viaje;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
+import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,9 @@ public class UsuarioServicio {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private ViajeRepository viajeRepository;
 
     public UsuarioDTO crearUsuario(UsuarioDTO usuarioDto) {
         Usuario usuario = Usuario.builder()
@@ -96,9 +101,20 @@ public class UsuarioServicio {
             throw new RuntimeException("El estado del conductor es incorrecto");
         }
 
-        if(usuario.getEstado() == EstadoConductor.BUSY){
+        if(estadoConductorDTO.getEstado() == null){
+            throw new RuntimeException("El estado del conductor es incorrecto");
+        }
+
+        if(usuario.getEstado() == estadoConductorDTO.getEstado()){
             throw new RuntimeException("El estado no puede ser BUSY");
         }
 
+        Viaje viaje = viajeRepository.findById(id).orElseThrow(
+                ()-> new RuntimeException("No se encontró el viaje.")
+        );
+
+        if(viaje.getConductor().getId().equals(usuario.getId())){
+
+        }
     }
 }
