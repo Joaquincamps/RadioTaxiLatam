@@ -43,7 +43,7 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioServicio.login(loginDTO));
     }
 
-    @PutMapping("/api/drivers/me/status")
+    @PutMapping("/api/drivers/{id}/status")
     public ResponseEntity<ConductorDTO> cambiarDisponibilidad(@PathVariable Long id,
                                                               @RequestBody EstadoConductorDTO estadoConductorDTO) {
         return ResponseEntity.ok(usuarioServicio.cambiarDisponibilidad(id, estadoConductorDTO));

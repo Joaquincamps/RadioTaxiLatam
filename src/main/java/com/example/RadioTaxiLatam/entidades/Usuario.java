@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @Entity
 @Data
 @AllArgsConstructor
@@ -34,5 +36,8 @@ public class Usuario {
     private EstadoConductor estado;
 
     private String matricula, modeloVehiculo;
+
+    private Instant ultimaUbicacion;
+
 
 }

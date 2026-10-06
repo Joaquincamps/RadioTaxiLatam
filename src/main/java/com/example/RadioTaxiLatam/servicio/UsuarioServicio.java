@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -150,5 +151,43 @@ public class UsuarioServicio {
                 .modeloVehiculo(usuarioGuardado.getModeloVehiculo())
                 .estado(usuarioGuardado.getEstado())
                 .build();
+    }
+
+    public UbicacionDTO enviarUbicacion(Long id, UbicacionDTO ubicacionDTO) {
+        Usuario usuario = usuarioRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND
+                        , "Usuario no encontrado.")
+        );
+
+        if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El usuario tiene que ser conductor."
+            );
+        }
+
+        if (ubicacionDTO.getLatitud() == null || ubicacionDTO.getLongitud() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Las coordenadas no tienen que ser nulas."
+            );
+        }
+
+        if (ubicacionDTO.getLatitud() < -90 || ubicacionDTO.getLatitud() > 90) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La latitud tiene que ser entre -90 y 90."
+            );
+        }
+
+        if (ubicacionDTO.getLongitud() < -180 || ubicacionDTO.getLatitud() > 180) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La longitud tiene que ser entre -180 y 180."
+            );
+        }
+        usuario.setUltimaUbicacion(Instant.now());
+        usuarioRepository.save(usuario);
+        return ubicacionDTO;
     }
 }

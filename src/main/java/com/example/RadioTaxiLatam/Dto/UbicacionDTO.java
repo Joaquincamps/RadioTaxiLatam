@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UbicacionDTO {
 
-    private double latitud, longitud;
+    private Double latitud, longitud;
 
 }
