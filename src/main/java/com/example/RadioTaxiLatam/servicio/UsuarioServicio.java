@@ -1,9 +1,6 @@
 package com.example.RadioTaxiLatam.servicio;
 
-import com.example.RadioTaxiLatam.Dto.ConductorDTO;
-import com.example.RadioTaxiLatam.Dto.LoginDTO;
-import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
-import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
+import com.example.RadioTaxiLatam.Dto.*;
 import com.example.RadioTaxiLatam.Enum.EstadoConductor;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
@@ -61,24 +58,35 @@ public class UsuarioServicio {
 
     public ConductorDTO login(LoginDTO loginDTO) {
         Usuario usuario = usuarioRepository.findByTelefono(loginDTO.getMovil());
+
+        if (usuario == null) {
+            throw new RuntimeException("Telefono o contraseña incorrecta.");
+        }
+
         if (usuario.getTipo() != TipoUsuario.CONDUCTOR) {
             throw new RuntimeException("El usuario no es conductor");
         }
 
-        if (loginDTO.getPassword().equals(usuario.getPassword())) {
-            if(usuario.getEstado() != EstadoConductor.BUSY){
-                usuario.setEstado(EstadoConductor.AVAILABLE);
-                usuarioRepository.save(usuario);
-                return ConductorDTO.builder()
-                        .id(usuario.getId())
-                        .nombre(usuario.getNombre())
-                        .telefono(usuario.getTelefono())
-                        .matricula(usuario.getMatricula())
-                        .modeloVehiculo(usuario.getModeloVehiculo())
-                        .estado(usuario.getEstado())
-                        .build();
-            }
+        if (!loginDTO.getPassword().equals(usuario.getPassword())) {
+            throw new RuntimeException("Contraseña o telefono incorrecto.");
         }
-        return null;
+
+        if (usuario.getEstado() != EstadoConductor.BUSY) {
+            usuario.setEstado(EstadoConductor.AVAILABLE);
+            usuarioRepository.save(usuario);
+        }
+        Usuario usuarioGuardado = usuarioRepository.save(usuario);
+        return ConductorDTO.builder()
+                .id(usuarioGuardado.getId())
+                .nombre(usuarioGuardado.getNombre())
+                .telefono(usuarioGuardado.getTelefono())
+                .matricula(usuarioGuardado.getMatricula())
+                .modeloVehiculo(usuarioGuardado.getModeloVehiculo())
+                .estado(usuarioGuardado.getEstado())
+                .build();
+    }
+
+    public ConductorDTO cambiarDisponibilidad(Long id, EstadoConductorDTO estadoConductorDTO){
+
     }
 }
