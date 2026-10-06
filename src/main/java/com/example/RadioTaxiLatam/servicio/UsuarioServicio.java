@@ -166,6 +166,13 @@ public class UsuarioServicio {
             );
         }
 
+        if (ubicacionDTO == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Las coordenadas no tienen que ser nulas."
+            );
+        }
+
         if (ubicacionDTO.getLatitud() == null || ubicacionDTO.getLongitud() == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
