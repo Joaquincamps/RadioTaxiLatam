@@ -48,4 +48,10 @@ public class UsuarioController {
                                                               @RequestBody EstadoConductorDTO estadoConductorDTO) {
         return ResponseEntity.ok(usuarioServicio.cambiarDisponibilidad(id, estadoConductorDTO));
     }
+
+    @PostMapping("/api/drivers/{id}/location")
+    public ResponseEntity<UbicacionDTO> enviarUbicacion(@PathVariable Long id,
+                                                        @RequestBody UbicacionDTO ubicacionDTO) {
+        return ResponseEntity.ok(usuarioServicio.enviarUbicacion(id, ubicacionDTO));
+    }
 }

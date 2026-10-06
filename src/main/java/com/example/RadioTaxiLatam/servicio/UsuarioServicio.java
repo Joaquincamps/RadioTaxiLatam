@@ -180,12 +180,15 @@ public class UsuarioServicio {
             );
         }
 
-        if (ubicacionDTO.getLongitud() < -180 || ubicacionDTO.getLatitud() > 180) {
+        if (ubicacionDTO.getLongitud() < -180 || ubicacionDTO.getLongitud() > 180) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "La longitud tiene que ser entre -180 y 180."
             );
         }
+
+        usuario.setLatitud(ubicacionDTO.getLatitud());
+        usuario.setLongitud(ubicacionDTO.getLongitud());
         usuario.setUltimaUbicacion(Instant.now());
         usuarioRepository.save(usuario);
         return ubicacionDTO;
