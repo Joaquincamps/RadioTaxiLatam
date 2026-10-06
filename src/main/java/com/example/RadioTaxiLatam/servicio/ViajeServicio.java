@@ -1,7 +1,7 @@
 package com.example.RadioTaxiLatam.servicio;
 
 import com.example.RadioTaxiLatam.Dto.ViajeDTO;
-import com.example.RadioTaxiLatam.Enum.DriverStatus;
+import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.entidades.Viaje;
@@ -28,7 +28,7 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un cliente");
         }
 
-        Viaje viaje = Viaje.builder().cliente(cliente).origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(DriverStatus.BUSCANDO_CONDUCTOR).build();
+        Viaje viaje = Viaje.builder().cliente(cliente).origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(EstadoViaje.BUSCANDO_CONDUCTOR).build();
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
@@ -54,7 +54,7 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un conductor.");
         }
 
-        if (viaje.getEstado() != DriverStatus.BUSCANDO_CONDUCTOR) {
+        if (viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR) {
             throw new RuntimeException("El viaje no está buscando conductor.");
         }
 
@@ -62,9 +62,9 @@ public class ViajeServicio {
         for (Viaje v : viajes) {
             if (v.getConductor() != null) {
                 if (v.getConductor().getId().equals(conductorId)) {
-                    if (v.getEstado() == DriverStatus.ASIGNADO ||
-                            v.getEstado() == DriverStatus.ACEPTADO ||
-                            v.getEstado() == DriverStatus.EN_CURSO) {
+                    if (v.getEstado() == EstadoViaje.ASIGNADO ||
+                            v.getEstado() == EstadoViaje.ACEPTADO ||
+                            v.getEstado() == EstadoViaje.EN_CURSO) {
                         throw new RuntimeException("No se puede asignar el viaje");
                     }
                 }
@@ -72,7 +72,7 @@ public class ViajeServicio {
         }
 
         viaje.setConductor(conductor);
-        viaje.setEstado(DriverStatus.ASIGNADO);
+        viaje.setEstado(EstadoViaje.ASIGNADO);
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
@@ -87,7 +87,7 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un conductor.");
         }
 
-        if (viaje.getEstado() != DriverStatus.ASIGNADO) {
+        if (viaje.getEstado() != EstadoViaje.ASIGNADO) {
             throw new RuntimeException("El viaje no está asignado a ningún conductor.");
         }
 
@@ -95,7 +95,7 @@ public class ViajeServicio {
             throw new RuntimeException("El conductor asignado no coincide con la aceptación.");
         }
 
-        viaje.setEstado(DriverStatus.ACEPTADO);
+        viaje.setEstado(EstadoViaje.ACEPTADO);
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
@@ -110,7 +110,7 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un conductor.");
         }
 
-        if (viaje.getEstado() != DriverStatus.ACEPTADO) {
+        if (viaje.getEstado() != EstadoViaje.ACEPTADO) {
             throw new RuntimeException("El estado del viaje tiene que ser aceptado");
         }
 
@@ -118,7 +118,7 @@ public class ViajeServicio {
             throw new RuntimeException("El conductor asignado no coincide con la aceptación.");
         }
 
-        viaje.setEstado(DriverStatus.EN_CURSO);
+        viaje.setEstado(EstadoViaje.EN_CURSO);
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
         return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
@@ -133,7 +133,7 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un conductor.");
         }
 
-        if (viaje.getEstado() != DriverStatus.EN_CURSO) {
+        if (viaje.getEstado() != EstadoViaje.EN_CURSO) {
             throw new RuntimeException("El estado del viaje tiene que ser aceptado");
         }
 
@@ -141,7 +141,7 @@ public class ViajeServicio {
             throw new RuntimeException("El conductor asignado no coincide con la aceptación.");
         }
 
-        viaje.setEstado(DriverStatus.FINALIZADO);
+        viaje.setEstado(EstadoViaje.FINALIZADO);
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
         return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
@@ -160,10 +160,10 @@ public class ViajeServicio {
             throw new RuntimeException("El conductor asignado no coincide con la aceptación.");
         }
 
-        if (viaje.getEstado() == DriverStatus.ACEPTADO ||
-                viaje.getEstado() == DriverStatus.EN_CURSO ||
-                viaje.getEstado() == DriverStatus.ASIGNADO) {
-            viaje.setEstado(DriverStatus.CANCELADO);
+        if (viaje.getEstado() == EstadoViaje.ACEPTADO ||
+                viaje.getEstado() == EstadoViaje.EN_CURSO ||
+                viaje.getEstado() == EstadoViaje.ASIGNADO) {
+            viaje.setEstado(EstadoViaje.CANCELADO);
         } else {
             throw new RuntimeException("El viaje no se puede cancelar.");
         }

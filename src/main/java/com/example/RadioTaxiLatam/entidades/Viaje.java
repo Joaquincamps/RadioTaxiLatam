@@ -1,6 +1,6 @@
 package com.example.RadioTaxiLatam.entidades;
 
-import com.example.RadioTaxiLatam.Enum.DriverStatus;
+import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +31,7 @@ public class Viaje {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DriverStatus estado;
+    private EstadoViaje estado;
 
 
 }

@@ -1,6 +1,6 @@
 package com.example.RadioTaxiLatam.Enum;
 
-public enum DriverStatus {
+public enum EstadoViaje {
     PENDIENTE,
     BUSCANDO_CONDUCTOR,
     ASIGNADO,

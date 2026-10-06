@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.entidades;
 
+import com.example.RadioTaxiLatam.Enum.EstadoConductor;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,12 +21,16 @@ public class Usuario {
     private String nombre;
 
     @Column(nullable = false, unique = true)
-    private String telefono ,password;
+    private String telefono, password;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoUsuario tipo;
 
     private Double latitud, longitud;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EstadoConductor estado;
 
 }

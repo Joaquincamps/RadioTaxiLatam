@@ -1,6 +1,6 @@
 package com.example.RadioTaxiLatam.Dto;
 
-import com.example.RadioTaxiLatam.Enum.DriverStatus;
+import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,5 +22,5 @@ public class ViajeDTO {
 
     private String destino;
 
-    private DriverStatus estado;
+    private EstadoViaje estado;
 }
