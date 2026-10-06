@@ -29,6 +29,10 @@ public class Viaje {
     @Column(nullable = false)
     private String origen, destino;
 
+    private Double latitudOrigen, longitudOrigen;
+
+    private Double latitudDestino, longitudDestino;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoViaje estado;
