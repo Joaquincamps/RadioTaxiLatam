@@ -3,6 +3,7 @@ package com.example.RadioTaxiLatam.servicio;
 import com.example.RadioTaxiLatam.Dto.LoginDTO;
 import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
 import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
+import com.example.RadioTaxiLatam.Enum.EstadoConductor;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
@@ -64,6 +65,7 @@ public class UsuarioServicio {
         }
 
         if (loginDTO.getPassword().equals(usuario.getPassword())) {
+            usuario.setEstado(EstadoConductor.AVAILABLE);
             return UsuarioDTO.builder()
                     .id(usuario.getId())
                     .nombre(usuario.getNombre())

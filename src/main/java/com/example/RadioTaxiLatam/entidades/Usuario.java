@@ -33,4 +33,6 @@ public class Usuario {
     @Column(nullable = false)
     private EstadoConductor estado;
 
+    private String matricula, modeloVehiculo;
+
 }
