@@ -73,7 +73,6 @@ public class UsuarioServicio {
 
         if (usuario.getEstado() != EstadoConductor.BUSY) {
             usuario.setEstado(EstadoConductor.AVAILABLE);
-            usuarioRepository.save(usuario);
         }
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
         return ConductorDTO.builder()
@@ -86,7 +85,20 @@ public class UsuarioServicio {
                 .build();
     }
 
-    public ConductorDTO cambiarDisponibilidad(Long id, EstadoConductorDTO estadoConductorDTO){
+    public ConductorDTO cambiarDisponibilidad(Long id, EstadoConductorDTO estadoConductorDTO) {
+        Usuario usuario = usuarioRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("Usuario no encontrado.")
+        );
+        if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
+            throw new RuntimeException("El usuario tiene que ser conductor.");
+        }
+        if (estadoConductorDTO == null) {
+            throw new RuntimeException("El estado del conductor es incorrecto");
+        }
+
+        if(usuario.getEstado() == EstadoConductor.BUSY){
+            throw new RuntimeException("El estado no puede ser BUSY");
+        }
 
     }
 }
