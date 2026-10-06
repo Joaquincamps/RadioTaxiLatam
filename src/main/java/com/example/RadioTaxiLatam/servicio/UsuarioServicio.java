@@ -65,22 +65,19 @@ public class UsuarioServicio {
             throw new RuntimeException("El usuario no es conductor");
         }
 
-        if (usuario.getEstado() == EstadoConductor.BUSY) {
-            usuario.setEstado(EstadoConductor.BUSY);
-            usuarioRepository.save(usuario);
-        }
-
         if (loginDTO.getPassword().equals(usuario.getPassword())) {
-            usuario.setEstado(EstadoConductor.AVAILABLE);
-            usuarioRepository.save(usuario);
-            return ConductorDTO.builder()
-                    .id(usuario.getId())
-                    .nombre(usuario.getNombre())
-                    .telefono(usuario.getTelefono())
-                    .matricula(usuario.getMatricula())
-                    .modeloVehiculo(usuario.getModeloVehiculo())
-                    .estado(usuario.getEstado())
-                    .build();
+            if(usuario.getEstado() != EstadoConductor.BUSY){
+                usuario.setEstado(EstadoConductor.AVAILABLE);
+                usuarioRepository.save(usuario);
+                return ConductorDTO.builder()
+                        .id(usuario.getId())
+                        .nombre(usuario.getNombre())
+                        .telefono(usuario.getTelefono())
+                        .matricula(usuario.getMatricula())
+                        .modeloVehiculo(usuario.getModeloVehiculo())
+                        .estado(usuario.getEstado())
+                        .build();
+            }
         }
         return null;
     }
