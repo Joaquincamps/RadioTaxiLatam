@@ -1,9 +1,6 @@
 package com.example.RadioTaxiLatam.controlador;
 
-import com.example.RadioTaxiLatam.Dto.ConductorDTO;
-import com.example.RadioTaxiLatam.Dto.LoginDTO;
-import com.example.RadioTaxiLatam.Dto.UbicacionDTO;
-import com.example.RadioTaxiLatam.Dto.UsuarioDTO;
+import com.example.RadioTaxiLatam.Dto.*;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.servicio.UsuarioServicio;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,5 +41,11 @@ public class UsuarioController {
     @PostMapping("/api/auth/login")
     public ResponseEntity<ConductorDTO> login(@RequestBody LoginDTO loginDTO) {
         return ResponseEntity.ok(usuarioServicio.login(loginDTO));
+    }
+
+    @PutMapping("/api/drivers/me/status")
+    public ResponseEntity<ConductorDTO> cambiarDisponibilidad(@PathVariable Long id,
+                                                              @RequestBody EstadoConductorDTO estadoConductorDTO) {
+        return ResponseEntity.ok(usuarioServicio.cambiarDisponibilidad(id, estadoConductorDTO));
     }
 }

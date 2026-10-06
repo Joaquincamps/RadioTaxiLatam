@@ -97,7 +97,8 @@ public class UsuarioServicio {
     public ConductorDTO cambiarDisponibilidad(Long id, EstadoConductorDTO estadoConductorDTO) {
         if (estadoConductorDTO == null ||
                 estadoConductorDTO.getEstado() == null) {
-            throw new RuntimeException("Debes indicar el estado del conductor");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST
+                    , "Debes indicar el estado del conductor");
         }
 
         EstadoConductor nuevoEstado = estadoConductorDTO.getEstado();
