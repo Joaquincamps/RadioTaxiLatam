@@ -260,4 +260,45 @@ public class OfertaViajeServicio {
                 .build();
 
     }
+
+    public void rechazarOferta(Long ofertaId, Long conductorId, String motivo){
+        OfertaViaje ofertaViaje = ofertaViajeRepository.findById(ofertaId).orElseThrow(
+                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND ,
+                        "La oferta de viaje no fue encontrada")
+        );
+        Usuario usuario = usuarioRepository.findById(conductorId).orElseThrow(
+                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Conductor no encontrado.")
+        );
+
+        if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El usuario tiene que ser conductor."
+            );
+        }
+
+        if(!ofertaViaje.getConductor().getId().equals(usuario.getId())){
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El conductor no es el asignado al viaje."
+            );
+        }
+
+        if(ofertaViaje.getEstado() == EstadoOferta.PENDIENTE){
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "La oferta ya no está pendiente."
+            );
+        }
+
+        if(!ofertaViaje.getExpiraEn().isAfter(Instant.now())){
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "La oferta ha caducado."
+            );
+        }
+
+        ofertaViaje.setEstado(EstadoOferta.RECHAZADA);
+    }
 }

@@ -20,7 +20,7 @@ public class OfertaViajeControlador {
         return ResponseEntity.ok(ofertaViajeServicio.obtenerOfertas(id));
     }
 
-    @PostMapping("/api/offers/{offerId}/accept")
+    @PostMapping("/api/offers/{ofertaId}/accept")
     public ResponseEntity<ViajeDTO> acpetarOferta(@PathVariable Long ofertaId ,
                                                   @RequestParam Long conductorId){
         return ResponseEntity.ok(ofertaViajeServicio.aceptarOferta(ofertaId,conductorId));
