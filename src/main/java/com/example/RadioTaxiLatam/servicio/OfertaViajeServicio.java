@@ -195,7 +195,7 @@ public class OfertaViajeServicio {
             );
         }
 
-        if(!oferta.getConductor().equals(usuario)){
+        if(!oferta.getConductor().getId().equals(conductorId)){
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "El conductor no es el asignado al viaje."
@@ -206,13 +206,32 @@ public class OfertaViajeServicio {
 
         }
 
-        if(usuario.getEstado() != EstadoConductor.AVAILABLE
+        if(usuario.getEstado() == EstadoConductor.AVAILABLE
         && oferta.getConductor() != null){
             oferta.setEstado(EstadoOferta.ACEPTADA);
             usuario.setEstado(EstadoConductor.BUSY);
             oferta.getViaje().setEstado(EstadoViaje.ACEPTADO);
+            oferta.setConductor(usuario);
         }
 
+        ofertaViajeRepository.save(oferta);
+
+        Viaje viaje = oferta.getViaje();
+
+        return ViajeDTO.builder()
+                .id(viaje.getId())
+                .clienteId(
+                        viaje.getCliente() != null
+                                ? viaje.getCliente().getId() : null
+                )
+                .conductorId(
+                        viaje.getConductor() != null
+                                ? viaje.getConductor().getId() : null
+                )
+                .origen(viaje.getOrigen())
+                .destino(viaje.getDestino())
+                .estado(viaje.getEstado())
+                .build();
 
     }
 }
