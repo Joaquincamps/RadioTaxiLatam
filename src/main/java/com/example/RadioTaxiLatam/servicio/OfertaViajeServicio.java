@@ -203,17 +203,34 @@ public class OfertaViajeServicio {
         }
 
         if(oferta.getEstado() != EstadoOferta.PENDIENTE){
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "La oferta ya no está pendiente."
+            );
+        }
+
+        if(!oferta.getExpiraEn().isAfter(Instant.now())){
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "La oferta ha caducado."
+            );
+        }
+
+        if(usuario.getEstado() != EstadoConductor.AVAILABLE){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El conductor no está disponible."
+            );
+        }
+
+        if(oferta.getViaje().getEstado() !=EstadoViaje.BUSCANDO_CONDUCTOR){
 
         }
 
-        if(usuario.getEstado() == EstadoConductor.AVAILABLE
-        && oferta.getConductor() != null){
-            oferta.setEstado(EstadoOferta.ACEPTADA);
-            usuario.setEstado(EstadoConductor.BUSY);
-            oferta.getViaje().setEstado(EstadoViaje.ACEPTADO);
-            oferta.setConductor(usuario);
-        }
-
+        oferta.setEstado(EstadoOferta.ACEPTADA);
+        usuario.setEstado(EstadoConductor.BUSY);
+        oferta.getViaje().setEstado(EstadoViaje.ACEPTADO);
+        oferta.setConductor(usuario);
         ofertaViajeRepository.save(oferta);
 
         Viaje viaje = oferta.getViaje();
