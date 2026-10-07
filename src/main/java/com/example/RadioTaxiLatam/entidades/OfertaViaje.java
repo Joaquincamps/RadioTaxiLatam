@@ -29,9 +29,11 @@ public class OfertaViaje {
     @JoinColumn(name = "conductor_id", nullable = false)
     private  Usuario conductor;
 
+    @Column(nullable = false)
     private Instant creadaEn, expiraEn;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private EstadoOferta estado;
 
 
