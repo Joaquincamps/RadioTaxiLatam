@@ -1,12 +1,11 @@
 package com.example.RadioTaxiLatam.controlador;
 
 import com.example.RadioTaxiLatam.Dto.OfertaViajeDto;
+import com.example.RadioTaxiLatam.Dto.ViajeDTO;
 import com.example.RadioTaxiLatam.servicio.OfertaViajeServicio;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -19,5 +18,11 @@ public class OfertaViajeControlador {
     @GetMapping("/api/drivers/{id}/offers")
     public ResponseEntity<List<OfertaViajeDto>> obtenerOfertas(@PathVariable Long id){
         return ResponseEntity.ok(ofertaViajeServicio.obtenerOfertas(id));
+    }
+
+    @PostMapping("/api/offers/{offerId}/accept")
+    public ResponseEntity<ViajeDTO> acpetarOferta(@PathVariable Long ofertaId ,
+                                                  @RequestParam Long conductorId){
+        return ResponseEntity.ok(ofertaViajeServicio.aceptarOferta(ofertaId,conductorId));
     }
 }

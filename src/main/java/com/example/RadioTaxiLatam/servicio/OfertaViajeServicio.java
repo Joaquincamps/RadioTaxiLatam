@@ -218,21 +218,21 @@ public class OfertaViajeServicio {
 
         if(usuario.getEstado() != EstadoConductor.AVAILABLE){
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.CONFLICT,
                     "El conductor no está disponible."
             );
         }
 
         if(oferta.getViaje().getEstado() !=EstadoViaje.BUSCANDO_CONDUCTOR){
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.GONE,
                     "El viaje ya no está buscando conductor."
             );
         }
 
         if(oferta.getViaje().getConductor() !=null){
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.GONE,
                     "El viaje ya tiene un conductor asignado."
             );
         }
