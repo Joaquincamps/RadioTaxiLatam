@@ -2,6 +2,7 @@ package com.example.RadioTaxiLatam.servicio;
 
 import com.example.RadioTaxiLatam.Dto.OfertaViajeDto;
 import com.example.RadioTaxiLatam.Enum.EstadoConductor;
+import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.entidades.Viaje;
@@ -45,9 +46,26 @@ public class OfertaViajeServicio {
 
         if(!usuario.getEstado().equals(EstadoConductor.AVAILABLE)){
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.CONFLICT,
                     "El conductor tiene que estar Available."
             );
         }
+
+        if(!viaje.getEstado().equals(EstadoViaje.BUSCANDO_CONDUCTOR)){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Tienes que estar buscando viaje."
+            );
+        }
+
+        if(viaje.getConductor() != null){
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El viaje no puede tener un conductor asignado."
+            );
+        }
+
+
+
     }
 }
