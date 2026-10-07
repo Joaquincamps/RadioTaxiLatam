@@ -224,13 +224,22 @@ public class OfertaViajeServicio {
         }
 
         if(oferta.getViaje().getEstado() !=EstadoViaje.BUSCANDO_CONDUCTOR){
-
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El viaje ya no está buscando conductor."
+            );
         }
 
+        if(oferta.getViaje().getConductor() !=null){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El viaje ya tiene un conductor asignado."
+            );
+        }
+        oferta.getViaje().setConductor(usuario);
         oferta.setEstado(EstadoOferta.ACEPTADA);
         usuario.setEstado(EstadoConductor.BUSY);
         oferta.getViaje().setEstado(EstadoViaje.ACEPTADO);
-        oferta.setConductor(usuario);
         ofertaViajeRepository.save(oferta);
 
         Viaje viaje = oferta.getViaje();
