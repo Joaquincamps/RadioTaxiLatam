@@ -25,4 +25,11 @@ public class OfertaViajeControlador {
                                                   @RequestParam Long conductorId){
         return ResponseEntity.ok(ofertaViajeServicio.aceptarOferta(ofertaId,conductorId));
     }
+
+    @PostMapping("/api/offers/{ofertaId}/reject")
+    public ResponseEntity<Void> rechazarOferta(@PathVariable Long ofertaId,
+                                               @RequestParam Long conductorId){
+         ofertaViajeServicio.rechazarOferta(ofertaId,conductorId);
+         return ResponseEntity.ok().build();
+    }
 }

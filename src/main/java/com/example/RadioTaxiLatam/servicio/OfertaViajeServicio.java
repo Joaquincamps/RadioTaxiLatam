@@ -261,7 +261,7 @@ public class OfertaViajeServicio {
 
     }
 
-    public void rechazarOferta(Long ofertaId, Long conductorId, String motivo){
+    public void rechazarOferta(Long ofertaId, Long conductorId){
         OfertaViaje ofertaViaje = ofertaViajeRepository.findById(ofertaId).orElseThrow(
                 ()-> new ResponseStatusException(HttpStatus.NOT_FOUND ,
                         "La oferta de viaje no fue encontrada")
@@ -285,7 +285,7 @@ public class OfertaViajeServicio {
             );
         }
 
-        if(ofertaViaje.getEstado() == EstadoOferta.PENDIENTE){
+        if(ofertaViaje.getEstado() != EstadoOferta.PENDIENTE){
             throw new ResponseStatusException(
                     HttpStatus.GONE,
                     "La oferta ya no está pendiente."
@@ -300,5 +300,6 @@ public class OfertaViajeServicio {
         }
 
         ofertaViaje.setEstado(EstadoOferta.RECHAZADA);
+        ofertaViajeRepository.save(ofertaViaje);
     }
 }
