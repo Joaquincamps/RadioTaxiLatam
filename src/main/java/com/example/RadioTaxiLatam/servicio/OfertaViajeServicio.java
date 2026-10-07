@@ -2,8 +2,10 @@ package com.example.RadioTaxiLatam.servicio;
 
 import com.example.RadioTaxiLatam.Dto.OfertaViajeDto;
 import com.example.RadioTaxiLatam.Enum.EstadoConductor;
+import com.example.RadioTaxiLatam.Enum.EstadoOferta;
 import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
+import com.example.RadioTaxiLatam.entidades.OfertaViaje;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.entidades.Viaje;
 import com.example.RadioTaxiLatam.repositorio.OfertaViajeRepository;
@@ -13,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Instant;
 
 @Service
 public class OfertaViajeServicio {
@@ -65,7 +69,36 @@ public class OfertaViajeServicio {
             );
         }
 
+        Instant ahora = Instant.now();
 
+        boolean tieneOfertaVigente =
+                ofertaViajeRepository.existsByViaje_IdAndEstadoAndExpiraEnAfter(
+                        viaje.getId(),
+                        EstadoOferta.PENDIENTE,
+                        ahora
+                );
+
+        if (tieneOfertaVigente) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El viaje ya tiene una oferta pendiente vigente."
+            );
+        }
+
+        OfertaViaje crearOfertaFinal = new OfertaViaje();
+        crearOfertaFinal.setViaje(viaje);
+        crearOfertaFinal.setConductor(usuario);
+        crearOfertaFinal.setCreadaEn(ahora);
+        crearOfertaFinal.setExpiraEn(ahora.plusSeconds(20));
+        crearOfertaFinal.setEstado(EstadoOferta.PENDIENTE);
+
+        ofertaViajeRepository.save(crearOfertaFinal);
+
+        return OfertaViajeDto.builder()
+                .id(crearOfertaFinal.getId())
+                .viaje(crearOfertaFinal.getViaje())
+
+                .build();
 
     }
 }
