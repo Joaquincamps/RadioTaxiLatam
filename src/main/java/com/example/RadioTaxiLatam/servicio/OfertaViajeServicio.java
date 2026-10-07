@@ -15,9 +15,12 @@ import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -136,6 +139,80 @@ public class OfertaViajeServicio {
         Instant ahora = Instant.now();
         List<OfertaViaje> consultarSusOfertas =
                 ofertaViajeRepository.findByConductor_IdAndEstadoAndExpiraEnAfter(usuario.getId(),EstadoOferta.PENDIENTE,ahora);
+
+        List<OfertaViajeDto> resultado = new ArrayList<>();
+        for(OfertaViaje oferta :consultarSusOfertas){
+            Viaje viaje = oferta.getViaje();
+
+            ViajeDTO viajeDTO = ViajeDTO.builder()
+                    .id(viaje.getId())
+                    .clienteId(
+                            viaje.getCliente() != null
+                                    ? viaje.getCliente().getId() : null
+                    )
+                    .conductorId(
+                            viaje.getConductor() != null
+                                    ? viaje.getConductor().getId() : null
+                    )
+                    .origen(viaje.getOrigen())
+                    .destino(viaje.getDestino())
+                    .estado(viaje.getEstado())
+                    .build();
+            int segundosRestantes = (int) Duration.between(
+                    ahora,
+                    oferta.getExpiraEn()
+            ).getSeconds();
+
+            OfertaViajeDto ofertaViajeDto = OfertaViajeDto.builder()
+                    .id(oferta.getId())
+                    .viaje(viajeDTO)
+                    .segundosRestantes(segundosRestantes)
+                    .distanciaRecogidaMetros(null)
+                    .build();
+
+            resultado.add(ofertaViajeDto);
+        }
+
+        return resultado;
+    }
+
+    @Transactional
+    public ViajeDTO aceptarOferta(Long ofertaId, Long conductorId){
+        OfertaViaje oferta = ofertaViajeRepository.findById(ofertaId).orElseThrow(
+                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND
+                        , "Oferta de viaje no encontrada.")
+        );
+
+        Usuario usuario = usuarioRepository.findById(conductorId).orElseThrow(
+                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Conductor no encontrado.")
+        );
+
+        if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El usuario tiene que ser conductor."
+            );
+        }
+
+        if(!oferta.getConductor().equals(usuario)){
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El conductor no es el asignado al viaje."
+            );
+        }
+
+        if(oferta.getEstado() != EstadoOferta.PENDIENTE){
+
+        }
+
+        if(usuario.getEstado() != EstadoConductor.AVAILABLE
+        && oferta.getConductor() != null){
+            oferta.setEstado(EstadoOferta.ACEPTADA);
+            usuario.setEstado(EstadoConductor.BUSY);
+            oferta.getViaje().setEstado(EstadoViaje.ACEPTADO);
+        }
+
 
     }
 }
