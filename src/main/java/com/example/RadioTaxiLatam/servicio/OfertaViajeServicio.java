@@ -1,6 +1,7 @@
 package com.example.RadioTaxiLatam.servicio;
 
 import com.example.RadioTaxiLatam.Dto.OfertaViajeDto;
+import com.example.RadioTaxiLatam.Dto.ViajeDTO;
 import com.example.RadioTaxiLatam.Enum.EstadoConductor;
 import com.example.RadioTaxiLatam.Enum.EstadoOferta;
 import com.example.RadioTaxiLatam.Enum.EstadoViaje;
@@ -94,10 +95,23 @@ public class OfertaViajeServicio {
 
         ofertaViajeRepository.save(crearOfertaFinal);
 
+        ViajeDTO viajeDTO = ViajeDTO.builder()
+                .id(viaje.getId())
+                .clienteId(
+                        viaje.getCliente() != null
+                        ? viaje.getCliente().getId() : null
+                )
+                .conductorId(
+                        viaje.getConductor() != null
+                        ? viaje.getConductor().getId() : null
+                )
+                .build();
+
         return OfertaViajeDto.builder()
                 .id(crearOfertaFinal.getId())
-                .viaje(crearOfertaFinal.getViaje())
-
+                .viaje(viajeDTO)
+                .segundosRestantes(20)
+                .distanciaRecogidaMetros(null)
                 .build();
 
     }
