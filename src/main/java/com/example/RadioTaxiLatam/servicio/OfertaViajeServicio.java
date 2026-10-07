@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class OfertaViajeServicio {
@@ -49,17 +50,17 @@ public class OfertaViajeServicio {
             );
         }
 
-        if(!usuario.getEstado().equals(EstadoConductor.AVAILABLE)){
+        if(usuario.getEstado() !=EstadoConductor.AVAILABLE){
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "El conductor tiene que estar Available."
             );
         }
 
-        if(!viaje.getEstado().equals(EstadoViaje.BUSCANDO_CONDUCTOR)){
+        if(viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR){
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Tienes que estar buscando viaje."
+                    HttpStatus.CONFLICT,
+                    "El viaje no está buscando conductor."
             );
         }
 
@@ -105,6 +106,9 @@ public class OfertaViajeServicio {
                         viaje.getConductor() != null
                         ? viaje.getConductor().getId() : null
                 )
+                .origen(viaje.getOrigen())
+                .destino(viaje.getDestino())
+                .estado(viaje.getEstado())
                 .build();
 
         return OfertaViajeDto.builder()
@@ -113,6 +117,25 @@ public class OfertaViajeServicio {
                 .segundosRestantes(20)
                 .distanciaRecogidaMetros(null)
                 .build();
+
+    }
+
+    public List<OfertaViajeDto> obtenerOfertas(Long id){
+        Usuario usuario = usuarioRepository.findById(id).orElseThrow(
+                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Conductor no encontrado.")
+        );
+
+        if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El usuario tiene que ser conductor."
+            );
+        }
+
+        Instant ahora = Instant.now();
+        List<OfertaViaje> consultarSusOfertas =
+                ofertaViajeRepository.findByConductor_IdAndEstadoAndExpiraEnAfter(usuario.getId(),EstadoOferta.PENDIENTE,ahora);
 
     }
 }
