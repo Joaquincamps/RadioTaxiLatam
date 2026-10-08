@@ -23,4 +23,9 @@ public interface OfertaViajeRepository extends JpaRepository<OfertaViaje, Long> 
             Long viajeId,
             Long conductorId
     );
+
+    List<OfertaViaje> findByEstadoAndExpiraEnLessThanEqual(
+            EstadoOferta estado,
+            Instant ahora
+    );
 }
