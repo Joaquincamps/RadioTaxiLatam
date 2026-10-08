@@ -65,13 +65,14 @@ public class AsignacionViajeServicio {
                 TipoUsuario.CONDUCTOR, EstadoConductor.AVAILABLE, Instant.now().minusSeconds(120)
         );
 
-        Usuario conductorMasCercano  = new Usuario();
+        Usuario conductorMasCercano  = null;
         double menorDistancia = Double.POSITIVE_INFINITY;
-        double distancia = calcularDistancia(viaje.getLatitudOrigen(),viaje.getLongitudOrigen(),
-                viaje.getConductor().getLatitud(),viaje.getConductor().getLongitud());
 
         for(Usuario candidato :candidatos){
             boolean tieneOferta = ofertaViajeRepository.existsByViaje_IdAndConductor_Id(viajeId, candidato.getId());
+            double distancia = calcularDistancia(viaje.getLatitudOrigen(),viaje.getLongitudOrigen(),
+                    candidato.getLatitud(),candidato.getLongitud());
+
             if(tieneOferta){
                 continue;
             }
@@ -85,6 +86,10 @@ public class AsignacionViajeServicio {
             return  null;
         }
 
+        return ofertaViajeServicio.crearOfertaViaje(
+                viaje.getId(),
+                conductorMasCercano.getId()
+        );
     }
 
     private double calcularDistancia(double latitudOrigen, double longitudOrigen,
@@ -104,6 +109,6 @@ public class AsignacionViajeServicio {
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-        return RADIO_TIERRA_KM * c;
+        return RADIO_TIERRA_KM * c * 1000;
     }
 }
