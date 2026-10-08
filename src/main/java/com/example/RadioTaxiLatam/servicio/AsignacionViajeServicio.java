@@ -38,20 +38,30 @@ public class AsignacionViajeServicio {
         if(viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR){
             throw new ResponseStatusException(
                     HttpStatus.GONE,
-                    "El viaje ."
+                    "El viaje tiene que estas buscando conductor."
             );
         }
-        for(Usuario candidato :candidatos){
-            if(){
 
-            }
+        if(viaje.getLatitudOrigen() !=null  && viaje.getLongitudOrigen() != null){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Lac coordenadas de origen no pueden ser nulas."
+            );
         }
-        /*
-        Antes de completar el for, falta comprobar que el viaje sigue
-        en BUSCANDO_CONDUCTOR, no tiene conductor asignado y tiene coordenadas
-         de recogida. Sin esas coordenadas no podrás comparar distancias.
-Después excluiremos a quienes ya recibieron una oferta para ese viaje y elegiremos
-al más cercano. La lista actual todavía no está ordenada por distancia.
-         */
+
+        if(viaje.getLatitudDestino() != null && viaje.getLongitudDestino() != null){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Las coordenadas de destino no pueden ser nulas."
+            );
+        }
+
+        if(!viaje.getConductor().getId().equals()){
+
+        }
+
+        for(Usuario candidato :candidatos){
+
+        }
     }
 }
