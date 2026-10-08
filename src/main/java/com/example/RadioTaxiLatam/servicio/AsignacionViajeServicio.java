@@ -42,22 +42,18 @@ public class AsignacionViajeServicio {
             );
         }
 
-        if(viaje.getLatitudOrigen() !=null  && viaje.getLongitudOrigen() != null){
+        if(viaje.getLatitudOrigen() !=null  || viaje.getLongitudOrigen() != null){
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Lac coordenadas de origen no pueden ser nulas."
             );
         }
 
-        if(viaje.getLatitudDestino() != null && viaje.getLongitudDestino() != null){
+        if(viaje.getConductor() != null){
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Las coordenadas de destino no pueden ser nulas."
+                    HttpStatus.CONFLICT,
+                    "El viaje no tiene conductor asignado."
             );
-        }
-
-        if(!viaje.getConductor().getId().equals()){
-
         }
 
         for(Usuario candidato :candidatos){
