@@ -8,7 +8,9 @@ import com.example.RadioTaxiLatam.entidades.Viaje;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
 import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -28,6 +30,27 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un cliente");
         }
 
+        if(viajeDTO.getLongitudOrigen() == null || viajeDTO.getLatitudOrigen() == null){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Las corrdenadas no pueden ser nulas."
+            );
+        }
+
+        if(viajeDTO.getLatitudOrigen() < -90 || viajeDTO.getLatitudOrigen() > 90){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Las corrdenadas de latitud no son correctas."
+            );
+        }
+
+        if(viajeDTO.getLongitudOrigen() < -180 || viajeDTO.getLongitudOrigen() > 180){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Las corrdenadas de longitud no son correctas."
+            );
+        }
+
         Viaje viaje = Viaje.builder().
                 cliente(cliente).origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(EstadoViaje.BUSCANDO_CONDUCTOR)
                 .latitudOrigen(viajeDTO.getLatitudOrigen())
@@ -36,7 +59,12 @@ public class ViajeServicio {
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
+        return ViajeDTO.builder()
+                .id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).origen(viajeGuardado.getOrigen())
+                .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
+                .latitudOrigen(viajeDTO.getLatitudOrigen())
+                .longitudOrigen(viajeDTO.getLongitudOrigen())
+                .build();
     }
 
     public ViajeDTO obtenerViajePorId(Long id) {
