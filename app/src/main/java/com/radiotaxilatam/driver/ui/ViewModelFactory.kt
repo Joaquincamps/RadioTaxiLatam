@@ -9,7 +9,7 @@ import com.radiotaxilatam.driver.ui.home.HomeViewModel
 import com.radiotaxilatam.driver.ui.login.LoginViewModel
 
 val AppViewModelFactory = viewModelFactory {
-    initializer { LoginViewModel((this[APPLICATION_KEY] as TaxiApp).repository) }
-    initializer { HomeViewModel((this[APPLICATION_KEY] as TaxiApp).repository) }
-    initializer { HistoryViewModel((this[APPLICATION_KEY] as TaxiApp).repository) }
+    initializer { LoginViewModel((this[APPLICATION_KEY] as TaxiApp).repositorio) }
+    initializer { HomeViewModel((this[APPLICATION_KEY] as TaxiApp).repositorio) }
+    initializer { HistoryViewModel((this[APPLICATION_KEY] as TaxiApp).repositorio) }
 }

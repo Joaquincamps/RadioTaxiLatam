@@ -37,8 +37,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.radiotaxilatam.driver.BuildConfig
 import com.radiotaxilatam.driver.R
-import com.radiotaxilatam.driver.TaxiApp
-import com.radiotaxilatam.driver.data.DriverRepository
+import com.radiotaxilatam.driver.data.ConductorRepositorio
 import com.radiotaxilatam.driver.ui.AppViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,19 +50,18 @@ data class LoginUiState(
     val loggedIn: Boolean = false,
 )
 
-class LoginViewModel(private val repository: DriverRepository) : ViewModel() {
+class LoginViewModel(private val repositorio: ConductorRepositorio) : ViewModel() {
     private val _state = MutableStateFlow(LoginUiState())
     val state: StateFlow<LoginUiState> = _state
 
     fun login(phone: String, password: String) {
-        val passwordRequired = BuildConfig.API_MODE != TaxiApp.API_MODE_MVP
-        if (phone.isBlank() || (passwordRequired && password.isBlank())) {
-            _state.update { it.copy(error = if (passwordRequired) "Ingresa tu teléfono y contraseña" else "Ingresa tu teléfono") }
+        if (phone.isBlank() || password.isBlank()) {
+            _state.update { it.copy(error = "Ingresa tu teléfono y contraseña") }
             return
         }
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            repository.login(phone, password)
+            repositorio.login(phone, password)
                 .onSuccess { _state.update { it.copy(loading = false, loggedIn = true) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.message) } }
         }
@@ -135,15 +133,10 @@ fun LoginScreen(
                     Text("Entrar")
                 }
             }
-            val modeHint = when (BuildConfig.API_MODE) {
-                TaxiApp.API_MODE_MOCK -> "Modo demo: cualquier teléfono, contraseña 1234"
-                TaxiApp.API_MODE_MVP -> "Modo pruebas: entra con el teléfono del conductor (sin contraseña)"
-                else -> null
-            }
-            if (modeHint != null) {
+            if (BuildConfig.USE_MOCK_API) {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    modeHint,
+                    "Modo demo: cualquier teléfono, contraseña 1234",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

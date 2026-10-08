@@ -23,9 +23,8 @@ import com.google.android.gms.location.Priority
 import com.radiotaxilatam.driver.MainActivity
 import com.radiotaxilatam.driver.R
 import com.radiotaxilatam.driver.TaxiApp
-import com.radiotaxilatam.driver.data.model.DriverStatus
-import com.radiotaxilatam.driver.data.model.LocationUpdate
-import com.radiotaxilatam.driver.data.model.RideOffer
+import com.radiotaxilatam.driver.data.model.EstadoConductor
+import com.radiotaxilatam.driver.data.model.OfertaViajeDto
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
@@ -37,23 +36,13 @@ import kotlinx.coroutines.launch
  */
 class DriverOnlineService : LifecycleService() {
 
-    private val repository by lazy { (application as TaxiApp).repository }
+    private val repositorio by lazy { (application as TaxiApp).repositorio }
     private val locationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val location = result.lastLocation ?: return
-            lifecycleScope.launch {
-                repository.sendLocation(
-                    LocationUpdate(
-                        lat = location.latitude,
-                        lng = location.longitude,
-                        accuracy = location.accuracy.takeIf { location.hasAccuracy() },
-                        heading = location.bearing.takeIf { location.hasBearing() },
-                        speed = location.speed.takeIf { location.hasSpeed() },
-                    )
-                )
-            }
+            lifecycleScope.launch { repositorio.enviarUbicacion(location.latitude, location.longitude) }
         }
     }
 
@@ -80,14 +69,14 @@ class DriverOnlineService : LifecycleService() {
 
     private fun startPolling() = lifecycleScope.launch {
         while (isActive) {
-            repository.poll().onSuccess { newOffer -> newOffer?.let(::notifyNewOffer) }
+            repositorio.consultar().onSuccess { nueva -> nueva?.let(::notifyNewOffer) }
             delay(POLL_INTERVAL_MS)
         }
     }
 
     private fun stopWhenOffline() = lifecycleScope.launch {
-        repository.driver.collectLatest { driver ->
-            if (driver == null || driver.status == DriverStatus.OFFLINE) stopSelf()
+        repositorio.conductor.collectLatest { conductor ->
+            if (conductor == null || conductor.estado == EstadoConductor.OFFLINE) stopSelf()
         }
     }
 
@@ -100,23 +89,23 @@ class DriverOnlineService : LifecycleService() {
     }
 
     @SuppressLint("MissingPermission") // areNotificationsEnabled() cubre POST_NOTIFICATIONS
-    private fun notifyNewOffer(offer: RideOffer) {
+    private fun notifyNewOffer(oferta: OfertaViajeDto) {
         val manager = NotificationManagerCompat.from(this)
         if (!manager.areNotificationsEnabled()) return
         val notification = NotificationCompat.Builder(this, TaxiApp.CHANNEL_OFFERS)
             .setSmallIcon(R.drawable.ic_stat_taxi)
             .setContentTitle("¡Nueva carrera!")
-            .setContentText("Recoger en: ${offer.ride.pickupAddress}")
+            .setContentText("Recoger en: ${oferta.viaje.origen}")
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
-                    "Recoger en: ${offer.ride.pickupAddress}" +
-                        (offer.ride.dropoffAddress?.let { "\nDestino: $it" } ?: "")
+                    "Recoger en: ${oferta.viaje.origen}" +
+                        (oferta.viaje.destino?.let { "\nDestino: $it" } ?: "")
                 )
             )
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setAutoCancel(true)
-            .setTimeoutAfter(offer.expiresInSeconds * 1000L)
+            .setTimeoutAfter(oferta.segundosRestantes * 1000L)
             .setContentIntent(openAppIntent())
             .setFullScreenIntent(openAppIntent(), true)
             .build()

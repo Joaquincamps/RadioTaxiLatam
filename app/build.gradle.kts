@@ -8,7 +8,7 @@ plugins {
 }
 
 val apiBaseUrl = providers.gradleProperty("apiBaseUrl").getOrElse("http://10.0.2.2:8080/")
-val apiMode = providers.gradleProperty("apiMode").getOrElse("mock")
+val useMockApi = providers.gradleProperty("useMockApi").getOrElse("true")
 
 android {
     namespace = "com.radiotaxilatam.driver"
@@ -22,7 +22,7 @@ android {
         versionName = "0.1.0"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
-        buildConfigField("String", "API_MODE", "\"$apiMode\"")
+        buildConfigField("boolean", "USE_MOCK_API", useMockApi)
     }
 
     buildTypes {

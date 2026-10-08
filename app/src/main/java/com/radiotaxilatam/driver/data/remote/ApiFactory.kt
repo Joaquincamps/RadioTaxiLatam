@@ -1,7 +1,6 @@
 package com.radiotaxilatam.driver.data.remote
 
 import com.radiotaxilatam.driver.BuildConfig
-import com.radiotaxilatam.driver.data.SessionStore
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -16,21 +15,18 @@ val AppJson = Json {
     explicitNulls = false
 }
 
+/** Cliente HTTP del backend de Joaquín. Su backend no tiene autenticación, así que no se manda token. */
 object ApiFactory {
-    fun retrofit(session: SessionStore, onUnauthorized: () -> Unit): Retrofit {
+    fun create(): TaxiApi {
         val client = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .addInterceptor { chain ->
-                val token = session.token.value
                 val request = chain.request().newBuilder()
                     // Evita la página de aviso del plan gratuito de ngrok (no afecta a otros servidores).
                     .header("ngrok-skip-browser-warning", "true")
-                    .apply { if (token != null) header("Authorization", "Bearer $token") }
                     .build()
-                val response = chain.proceed(request)
-                if (response.code == 401 && token != null) onUnauthorized()
-                response
+                chain.proceed(request)
             }
             .apply {
                 if (BuildConfig.DEBUG) {
@@ -44,5 +40,6 @@ object ApiFactory {
             .client(client)
             .addConverterFactory(AppJson.asConverterFactory("application/json".toMediaType()))
             .build()
+            .create(TaxiApi::class.java)
     }
 }

@@ -25,12 +25,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val app = application as TaxiApp
-        val start = if (app.repository.isLoggedIn) Routes.HOME else Routes.LOGIN
+        val start = if (app.repositorio.haIniciadoSesion) Routes.HOME else Routes.LOGIN
 
         setContent {
             RadioTaxiTheme {
                 val nav = rememberNavController()
-                LaunchedEffect(Unit) { app.sessionExpired.collect { nav.goToLogin() } }
+                LaunchedEffect(Unit) { app.repositorio.sesionCaducada.collect { nav.goToLogin() } }
 
                 NavHost(navController = nav, startDestination = start) {
                     composable(Routes.LOGIN) {

@@ -67,14 +67,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.radiotaxilatam.driver.data.ActiveOffer
-import com.radiotaxilatam.driver.data.model.DriverStatus
-import com.radiotaxilatam.driver.data.model.Ride
-import com.radiotaxilatam.driver.data.model.RideStatus
+import com.radiotaxilatam.driver.data.OfertaActiva
+import com.radiotaxilatam.driver.data.model.EstadoConductor
+import com.radiotaxilatam.driver.data.model.EstadoViaje
+import com.radiotaxilatam.driver.data.model.Viaje
 import com.radiotaxilatam.driver.service.DriverOnlineService
 import com.radiotaxilatam.driver.ui.AppViewModelFactory
 import com.radiotaxilatam.driver.ui.formatDistance
-import com.radiotaxilatam.driver.ui.formatMoney
 import com.radiotaxilatam.driver.ui.label
 import com.radiotaxilatam.driver.ui.theme.OnlineGreen
 import kotlinx.coroutines.delay
@@ -87,9 +86,10 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = AppViewModelFactory),
 ) {
     val context = LocalContext.current
-    val driver by viewModel.driver.collectAsStateWithLifecycle()
-    val ride by viewModel.currentRide.collectAsStateWithLifecycle()
-    val offer by viewModel.offer.collectAsStateWithLifecycle()
+    val conductor by viewModel.conductor.collectAsStateWithLifecycle()
+    val viaje by viewModel.viajeActual.collectAsStateWithLifecycle()
+    val viajeLlegadoId by viewModel.viajeLlegadoId.collectAsStateWithLifecycle()
+    val oferta by viewModel.oferta.collectAsStateWithLifecycle()
     val working by viewModel.working.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var showPermissionHelp by remember { mutableStateOf(false) }
@@ -100,19 +100,24 @@ fun HomeScreen(
         if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             granted[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         ) {
-            viewModel.setAvailable(true)
+            if (conductor?.estado == EstadoConductor.AVAILABLE) DriverOnlineService.start(context)
+            else viewModel.cambiarDisponibilidad(true)
         } else {
             showPermissionHelp = true
+            // Sin ubicación el backend nunca le ofrecerá viajes: mejor que figure como no disponible.
+            if (conductor?.estado == EstadoConductor.AVAILABLE) viewModel.cambiarDisponibilidad(false)
         }
     }
 
     LaunchedEffect(Unit) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
 
     // Mientras el conductor esté en línea (disponible u ocupado) el servicio envía ubicación y consulta carreras.
-    val status = driver?.status
+    // El login del backend pone al conductor AVAILABLE directamente: si aún no hay permiso de ubicación, se pide.
+    val status = conductor?.estado
     LaunchedEffect(status) {
-        if (status != null && status != DriverStatus.OFFLINE && hasLocationPermission(context)) {
-            DriverOnlineService.start(context)
+        if (status != null && status != EstadoConductor.OFFLINE) {
+            if (hasLocationPermission(context)) DriverOnlineService.start(context)
+            else permissionLauncher.launch(requiredPermissions())
         }
     }
 
@@ -121,9 +126,9 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(driver?.name ?: "Conductor", style = MaterialTheme.typography.titleMedium)
-                        driver?.let { d ->
-                            listOfNotNull(d.vehicleModel, d.vehiclePlate).takeIf { it.isNotEmpty() }?.let {
+                        Text(conductor?.nombre ?: "Conductor", style = MaterialTheme.typography.titleMedium)
+                        conductor?.let { c ->
+                            listOfNotNull(c.modeloVehiculo, c.matricula).takeIf { it.isNotEmpty() }?.let {
                                 Text(
                                     it.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall,
@@ -137,7 +142,7 @@ fun HomeScreen(
                     IconButton(onClick = onOpenHistory) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Historial")
                     }
-                    IconButton(onClick = { viewModel.logout(onLoggedOut) }, enabled = ride == null) {
+                    IconButton(onClick = { viewModel.logout(onLoggedOut) }, enabled = viaje == null) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión")
                     }
                 },
@@ -157,40 +162,41 @@ fun HomeScreen(
 
             AvailabilityCard(
                 status = status,
-                enabled = !working && driver != null && ride == null,
+                enabled = !working && conductor != null && viaje == null,
                 onToggle = { wantOnline ->
                     if (!wantOnline) {
-                        viewModel.setAvailable(false)
+                        viewModel.cambiarDisponibilidad(false)
                     } else if (hasLocationPermission(context)) {
-                        viewModel.setAvailable(true)
+                        viewModel.cambiarDisponibilidad(true)
                     } else {
                         permissionLauncher.launch(requiredPermissions())
                     }
                 },
             )
 
-            val currentRide = ride
+            val actual = viaje
             when {
-                driver == null -> Centered { CircularProgressIndicator() }
-                currentRide != null -> CurrentRideCard(
-                    ride = currentRide,
+                conductor == null -> Centered { CircularProgressIndicator() }
+                actual != null -> CurrentRideCard(
+                    viaje = actual,
+                    llegado = viajeLlegadoId == actual.id,
                     working = working,
-                    onAdvance = { viewModel.advance(currentRide) },
-                    onNavigate = { openNavigation(context, currentRide) },
-                    onCall = { currentRide.passengerPhone?.let { dial(context, it) } },
+                    onAdvance = { viewModel.avanzar(actual) },
+                    onNavigate = { openNavigation(context, actual) },
+                    onCall = { actual.cliente?.telefono?.let { dial(context, it) } },
                 )
-                status == DriverStatus.AVAILABLE -> WaitingCard()
+                status == EstadoConductor.AVAILABLE -> WaitingCard()
                 else -> OfflineHint()
             }
         }
     }
 
-    offer?.let { active ->
+    oferta?.let { activa ->
         OfferDialog(
-            active = active,
-            onAccept = { viewModel.accept(active.offer.offerId) },
-            onReject = { viewModel.reject(active.offer.offerId) },
-            onExpired = { viewModel.expire(active.offer.offerId) },
+            activa = activa,
+            onAccept = { viewModel.aceptar(activa.oferta.id) },
+            onReject = { viewModel.rechazar(activa.oferta.id) },
+            onExpired = { viewModel.caducar(activa.oferta.id) },
         )
     }
 
@@ -215,11 +221,11 @@ private fun Centered(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun AvailabilityCard(status: DriverStatus?, enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    val online = status == DriverStatus.AVAILABLE || status == DriverStatus.BUSY
+private fun AvailabilityCard(status: EstadoConductor?, enabled: Boolean, onToggle: (Boolean) -> Unit) {
+    val online = status == EstadoConductor.AVAILABLE || status == EstadoConductor.BUSY
     val (title, subtitle) = when (status) {
-        DriverStatus.AVAILABLE -> "Disponible" to "Recibiendo carreras"
-        DriverStatus.BUSY -> "Ocupado" to "Tienes una carrera en curso"
+        EstadoConductor.AVAILABLE -> "Disponible" to "Recibiendo carreras"
+        EstadoConductor.BUSY -> "Ocupado" to "Tienes una carrera en curso"
         else -> "No disponible" to "No recibirás carreras"
     }
     Card(
@@ -279,7 +285,8 @@ private fun OfflineHint() {
 
 @Composable
 private fun CurrentRideCard(
-    ride: Ride,
+    viaje: Viaje,
+    llegado: Boolean,
     working: Boolean,
     onAdvance: () -> Unit,
     onNavigate: () -> Unit,
@@ -290,14 +297,12 @@ private fun CurrentRideCard(
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                "Carrera #${ride.id} · ${ride.status.label}",
+                "Carrera #${viaje.id} · ${viaje.estado.label(llegado)}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
-            RideAddresses(ride)
-            ride.passengerName?.let { LabeledLine("Pasajero", it) }
-            ride.notes?.let { LabeledLine("Notas", it) }
-            formatMoney(ride.estimatedFare, ride.currency)?.let { LabeledLine("Tarifa estimada", it) }
+            RideAddresses(viaje.origen, viaje.destino)
+            viaje.cliente?.nombre?.let { LabeledLine("Pasajero", it) }
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onNavigate, modifier = Modifier.weight(1f)) {
@@ -305,7 +310,7 @@ private fun CurrentRideCard(
                     Spacer(Modifier.width(4.dp))
                     Text("Navegar")
                 }
-                if (ride.passengerPhone != null) {
+                if (viaje.cliente?.telefono != null) {
                     OutlinedButton(onClick = onCall, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.Call, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
@@ -313,10 +318,10 @@ private fun CurrentRideCard(
                     }
                 }
             }
-            val actionLabel = when (ride.status) {
-                RideStatus.ACCEPTED -> "Llegué al punto de recogida"
-                RideStatus.ARRIVED -> "Iniciar viaje"
-                RideStatus.IN_PROGRESS -> "Finalizar viaje"
+            val actionLabel = when {
+                viaje.estado == EstadoViaje.ACEPTADO && !llegado -> "Llegué al punto de recogida"
+                viaje.estado == EstadoViaje.ACEPTADO -> "Iniciar viaje"
+                viaje.estado == EstadoViaje.EN_CURSO -> "Finalizar viaje"
                 else -> null
             }
             actionLabel?.let {
@@ -331,10 +336,10 @@ private fun CurrentRideCard(
 }
 
 @Composable
-fun RideAddresses(ride: Ride) {
+fun RideAddresses(origen: String, destino: String?) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AddressLine(Icons.Default.Place, "Origen", ride.pickupAddress)
-        ride.dropoffAddress?.let { AddressLine(Icons.Default.LocationOn, "Destino", it) }
+        AddressLine(Icons.Default.Place, "Origen", origen)
+        destino?.let { AddressLine(Icons.Default.LocationOn, "Destino", it) }
     }
 }
 
@@ -357,16 +362,16 @@ private fun LabeledLine(label: String, value: String) {
 
 @Composable
 private fun OfferDialog(
-    active: ActiveOffer,
+    activa: OfertaActiva,
     onAccept: () -> Unit,
     onReject: () -> Unit,
     onExpired: () -> Unit,
 ) {
-    val offer = active.offer
-    var secondsLeft by remember(offer.offerId) { mutableIntStateOf(active.secondsLeft()) }
-    LaunchedEffect(offer.offerId) {
+    val oferta = activa.oferta
+    var secondsLeft by remember(oferta.id) { mutableIntStateOf(activa.segundosRestantes()) }
+    LaunchedEffect(oferta.id) {
         while (true) {
-            secondsLeft = active.secondsLeft()
+            secondsLeft = activa.segundosRestantes()
             if (secondsLeft <= 0) {
                 onExpired()
                 break
@@ -382,14 +387,12 @@ private fun OfferDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 LinearProgressIndicator(
-                    progress = { secondsLeft / offer.expiresInSeconds.coerceAtLeast(1).toFloat() },
+                    progress = { secondsLeft / activa.segundosTotales.coerceAtLeast(1).toFloat() },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("Quedan $secondsLeft s para responder", style = MaterialTheme.typography.bodySmall)
-                RideAddresses(offer.ride)
-                formatDistance(offer.distanceToPickupMeters)?.let { LabeledLine("Distancia al origen", it) }
-                formatMoney(offer.ride.estimatedFare, offer.ride.currency)?.let { LabeledLine("Tarifa estimada", it) }
-                offer.ride.notes?.let { LabeledLine("Notas", it) }
+                RideAddresses(oferta.viaje.origen, oferta.viaje.destino)
+                formatDistance(oferta.distanciaRecogidaMetros)?.let { LabeledLine("Distancia al origen", it) }
             }
         },
         confirmButton = {
@@ -415,11 +418,11 @@ private fun hasLocationPermission(context: Context): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
 /** Abre Google Maps, Waze u otra app de mapas hacia el siguiente punto de la carrera. */
-private fun openNavigation(context: Context, ride: Ride) {
-    val toDropoff = ride.status == RideStatus.IN_PROGRESS && ride.dropoffAddress != null
-    val lat = if (toDropoff) ride.dropoffLat else ride.pickupLat
-    val lng = if (toDropoff) ride.dropoffLng else ride.pickupLng
-    val address = if (toDropoff) ride.dropoffAddress!! else ride.pickupAddress
+private fun openNavigation(context: Context, viaje: Viaje) {
+    val toDropoff = viaje.estado == EstadoViaje.EN_CURSO && viaje.destino != null
+    val lat = if (toDropoff) viaje.latitudDestino else viaje.latitudOrigen
+    val lng = if (toDropoff) viaje.longitudDestino else viaje.longitudOrigen
+    val address = if (toDropoff) viaje.destino!! else viaje.origen
     val query = if (lat != null && lng != null) "$lat,$lng(${Uri.encode(address)})" else Uri.encode(address)
     startSafely(context, Intent(Intent.ACTION_VIEW, "geo:0,0?q=$query".toUri()))
 }

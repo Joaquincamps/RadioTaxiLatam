@@ -1,17 +1,16 @@
-﻿package com.radiotaxilatam.driver.data.mock
+package com.radiotaxilatam.driver.data.mock
 
-import com.radiotaxilatam.driver.data.model.Driver
-import com.radiotaxilatam.driver.data.model.DriverStatus
-import com.radiotaxilatam.driver.data.model.LocationUpdate
-import com.radiotaxilatam.driver.data.model.LoginRequest
-import com.radiotaxilatam.driver.data.model.LoginResponse
-import com.radiotaxilatam.driver.data.model.Page
-import com.radiotaxilatam.driver.data.model.RejectRequest
-import com.radiotaxilatam.driver.data.model.Ride
-import com.radiotaxilatam.driver.data.model.RideOffer
-import com.radiotaxilatam.driver.data.model.RideStatus
-import com.radiotaxilatam.driver.data.model.RideStatusRequest
-import com.radiotaxilatam.driver.data.model.StatusRequest
+import com.radiotaxilatam.driver.data.model.ConductorDTO
+import com.radiotaxilatam.driver.data.model.EstadoConductor
+import com.radiotaxilatam.driver.data.model.EstadoConductorDTO
+import com.radiotaxilatam.driver.data.model.EstadoViaje
+import com.radiotaxilatam.driver.data.model.LoginDTO
+import com.radiotaxilatam.driver.data.model.OfertaViajeDto
+import com.radiotaxilatam.driver.data.model.TipoUsuario
+import com.radiotaxilatam.driver.data.model.UbicacionDTO
+import com.radiotaxilatam.driver.data.model.Usuario
+import com.radiotaxilatam.driver.data.model.Viaje
+import com.radiotaxilatam.driver.data.model.ViajeDTO
 import com.radiotaxilatam.driver.data.remote.TaxiApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -19,31 +18,30 @@ import kotlinx.coroutines.sync.withLock
 import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.HttpException
 import retrofit2.Response
+import java.time.Duration
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import kotlin.random.Random
 
 /**
- * Backend simulado en memoria para probar la app sin el servidor de Spring Boot.
- * Login: cualquier telÃ©fono con contraseÃ±a "1234". Mientras el conductor estÃ¡
- * disponible, llega una carrera nueva cada ~15 s.
+ * Backend simulado en memoria que se comporta como el de Joaquín (mismas rutas, DTOs y estados),
+ * incluidas sus rarezas: el login pone al conductor AVAILABLE, los errores de login son 500 y
+ * finalizar el viaje deja al conductor en BUSY.
+ * Login: cualquier teléfono con contraseña "1234". Mientras el conductor está AVAILABLE
+ * llega una oferta nueva cada ~15 s.
  */
 class MockTaxiApi : TaxiApi {
     private val mutex = Mutex()
-    private var driver = Driver(1, "Carlos Quispe", "+51 987 654 321", "ABC-123", "Toyota Yaris", DriverStatus.OFFLINE)
-    private var pendingOffer: Pair<RideOffer, Instant>? = null
-    private var nextOfferAt: Instant = Instant.now()
-    private var currentRide: Ride? = null
-    private var nextId = 1000L
-    private val history = mutableListOf<Ride>()
+    private var conductor = Usuario(1, "Carlos Quispe", "+51987654321", TipoUsuario.CONDUCTOR, EstadoConductor.OFFLINE, "ABC-123", "Toyota Yaris")
+    private val viajes = mutableListOf<Viaje>()
+    private var ofertaPendiente: Pair<OfertaViajeDto, Instant>? = null
+    private var siguienteOfertaEn: Instant = Instant.now()
+    private var siguienteId = 1000L
 
     init {
         repeat(8) { i ->
-            val daysAgo = (i + 1).toLong()
-            history += randomRide(nextId++).copy(
-                status = if (i == 3) RideStatus.CANCELLED else RideStatus.COMPLETED,
-                createdAt = Instant.now().minus(daysAgo, ChronoUnit.DAYS).toString(),
-                completedAt = Instant.now().minus(daysAgo, ChronoUnit.DAYS).plus(25, ChronoUnit.MINUTES).toString(),
+            viajes += viajeAleatorio(siguienteId++).copy(
+                conductor = conductor,
+                estado = if (i == 3) EstadoViaje.CANCELADO else EstadoViaje.FINALIZADO,
             )
         }
     }
@@ -53,116 +51,130 @@ class MockTaxiApi : TaxiApi {
         return mutex.withLock(action = block)
     }
 
-    override suspend fun login(body: LoginRequest): LoginResponse = call {
-        if (body.password != "1234") throw httpError(401, "TelÃ©fono o contraseÃ±a incorrectos")
-        LoginResponse("mock-token", driver.copy(phone = body.phone))
+    override suspend fun login(loginDTO: LoginDTO): ConductorDTO = call {
+        if (loginDTO.password != "1234") throw httpError(500, "Contraseña o telefono incorrecto.")
+        if (conductor.estado != EstadoConductor.BUSY) conductor = conductor.copy(estado = EstadoConductor.AVAILABLE)
+        conductor = conductor.copy(telefono = loginDTO.movil)
+        siguienteOfertaEn = Instant.now().plusSeconds(5)
+        conductorDTO()
     }
 
-    override suspend fun me(): Driver = call { driver }
+    override suspend fun cambiarDisponibilidad(id: Long, estadoConductorDTO: EstadoConductorDTO): ConductorDTO = call {
+        if (estadoConductorDTO.estado == EstadoConductor.BUSY) throw httpError(400, "Solo puedes cambiar a Available o Offline.")
+        if (viajeActivo() != null) throw httpError(409, "No se puede cambiar tu disponibilidad con una carrera activa")
+        conductor = conductor.copy(estado = estadoConductorDTO.estado)
+        siguienteOfertaEn = Instant.now().plusSeconds(5)
+        if (estadoConductorDTO.estado == EstadoConductor.OFFLINE) ofertaPendiente = null
+        conductorDTO()
+    }
 
-    override suspend fun setStatus(body: StatusRequest): Driver = call {
-        if (currentRide != null && body.status == DriverStatus.OFFLINE) {
-            throw httpError(409, "No puedes desconectarte con una carrera activa")
+    override suspend fun enviarUbicacion(id: Long, ubicacionDTO: UbicacionDTO): UbicacionDTO = call { ubicacionDTO }
+
+    override suspend fun obtenerTodosLosUsuarios(): List<Usuario> = call { listOf(conductor) }
+
+    override suspend fun obtenerOfertas(id: Long): List<OfertaViajeDto> = call {
+        val ahora = Instant.now()
+        ofertaPendiente?.let { (_, expira) -> if (ahora.isAfter(expira)) ofertaPendiente = null }
+        if (ofertaPendiente == null && conductor.estado == EstadoConductor.AVAILABLE && ahora.isAfter(siguienteOfertaEn)) {
+            val viaje = viajeAleatorio(siguienteId++).copy(estado = EstadoViaje.BUSCANDO_CONDUCTOR)
+            viajes += viaje
+            val oferta = OfertaViajeDto(siguienteId++, viaje.aDTO(), 20, Random.nextInt(300, 2500))
+            ofertaPendiente = oferta to ahora.plusSeconds(20)
+            siguienteOfertaEn = ahora.plusSeconds(15)
         }
-        driver = driver.copy(status = body.status)
-        nextOfferAt = Instant.now().plusSeconds(5)
-        if (body.status == DriverStatus.OFFLINE) pendingOffer = null
-        driver
+        listOfNotNull(ofertaPendiente?.let { (oferta, expira) ->
+            oferta.copy(segundosRestantes = Duration.between(ahora, expira).seconds.toInt())
+        })
     }
 
-    override suspend fun sendLocation(body: LocationUpdate) = call { }
-
-    override suspend fun pendingOffers(): List<RideOffer> = call {
-        val now = Instant.now()
-        pendingOffer?.let { (offer, expires) -> if (now.isAfter(expires)) pendingOffer = null }
-        if (pendingOffer == null && driver.status == DriverStatus.AVAILABLE && now.isAfter(nextOfferAt)) {
-            val offer = RideOffer(nextId++, randomRide(nextId++), 20, Random.nextInt(300, 2500))
-            pendingOffer = offer to now.plusSeconds(offer.expiresInSeconds.toLong())
-            nextOfferAt = now.plusSeconds(15)
-        }
-        listOfNotNull(pendingOffer?.first)
+    override suspend fun aceptarOferta(ofertaId: Long, conductorId: Long): ViajeDTO = call {
+        val oferta = ofertaPendiente?.first?.takeIf { it.id == ofertaId }
+            ?: throw httpError(410, "La oferta ya no está pendiente.")
+        ofertaPendiente = null
+        conductor = conductor.copy(estado = EstadoConductor.BUSY)
+        actualizar(oferta.viaje.id) { it.copy(conductor = conductor, estado = EstadoViaje.ACEPTADO) }.aDTO()
     }
 
-    override suspend fun acceptOffer(offerId: Long): Ride = call {
-        val offer = pendingOffer?.first?.takeIf { it.offerId == offerId }
-            ?: throw httpError(410, "La carrera ya no estÃ¡ disponible")
-        pendingOffer = null
-        val ride = offer.ride.copy(status = RideStatus.ACCEPTED)
-        currentRide = ride
-        driver = driver.copy(status = DriverStatus.BUSY)
-        ride
+    override suspend fun rechazarOferta(ofertaId: Long, conductorId: Long): Response<Unit> = call {
+        val oferta = ofertaPendiente?.first?.takeIf { it.id == ofertaId }
+            ?: throw httpError(410, "La oferta ha caducado.")
+        ofertaPendiente = null
+        viajes.removeAll { it.id == oferta.viaje.id } // se lo lleva "otro conductor"
+        siguienteOfertaEn = Instant.now().plusSeconds(15)
+        Response.success(Unit)
     }
 
-    override suspend fun rejectOffer(offerId: Long, body: RejectRequest) = call {
-        if (pendingOffer?.first?.offerId == offerId) pendingOffer = null
-        nextOfferAt = Instant.now().plusSeconds(15)
+    override suspend fun obtenerTodosLosViajes(): List<Viaje> = call { viajes.toList() }
+
+    override suspend fun iniciarViaje(viajeId: Long, conductorId: Long): ViajeDTO = call {
+        val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(500, "El viaje no existe.")
+        if (viaje.estado != EstadoViaje.ACEPTADO) throw httpError(500, "El estado del viaje tiene que ser aceptado")
+        actualizar(viajeId) { it.copy(estado = EstadoViaje.EN_CURSO) }.aDTO()
     }
 
-    override suspend fun currentRide(): Response<Ride> = call {
-        currentRide?.let { Response.success(it) } ?: Response.success<Ride>(204, null)
+    override suspend fun finalizarViaje(viajeId: Long, conductorId: Long): ViajeDTO = call {
+        val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(500, "El viaje no existe.")
+        if (viaje.estado != EstadoViaje.EN_CURSO) throw httpError(500, "El estado del viaje tiene que ser aceptado")
+        // Igual que su backend: el conductor se queda en BUSY.
+        actualizar(viajeId) { it.copy(estado = EstadoViaje.FINALIZADO) }.aDTO()
     }
 
-    override suspend fun updateRideStatus(rideId: Long, body: RideStatusRequest): Ride = call {
-        val ride = currentRide?.takeIf { it.id == rideId } ?: throw httpError(404, "Carrera no encontrada")
-        val updated = ride.copy(
-            status = body.status,
-            finalFare = body.finalFare ?: ride.finalFare,
-            completedAt = if (body.status == RideStatus.COMPLETED) Instant.now().toString() else null,
-        )
-        if (body.status == RideStatus.COMPLETED || body.status == RideStatus.CANCELLED) {
-            currentRide = null
-            history.add(0, updated.copy(finalFare = updated.finalFare ?: updated.estimatedFare))
-            driver = driver.copy(status = DriverStatus.AVAILABLE)
-            nextOfferAt = Instant.now().plusSeconds(10)
-        } else {
-            currentRide = updated
-        }
-        updated
+    override suspend fun cancelarViaje(viajeId: Long, conductorId: Long): ViajeDTO = call {
+        actualizar(viajeId) { it.copy(estado = EstadoViaje.CANCELADO) }.aDTO()
     }
 
-    override suspend fun rideHistory(page: Int, size: Int): Page<Ride> = call {
-        val from = page * size
-        val content = history.drop(from).take(size)
-        Page(content, page, size, history.size.toLong(), last = from + size >= history.size)
+    private fun viajeActivo() = viajes.firstOrNull {
+        it.conductor?.id == conductor.id && (it.estado == EstadoViaje.ACEPTADO || it.estado == EstadoViaje.EN_CURSO)
     }
 
-    private fun randomRide(id: Long): Ride {
-        val (pickup, pLat, pLng) = PLACES.random()
-        val (dropoff, dLat, dLng) = PLACES.filter { it.first != pickup }.random()
-        return Ride(
+    private fun actualizar(viajeId: Long, cambio: (Viaje) -> Viaje): Viaje {
+        val i = viajes.indexOfFirst { it.id == viajeId }
+        if (i < 0) throw httpError(500, "El viaje no existe.")
+        return cambio(viajes[i]).also { viajes[i] = it }
+    }
+
+    private fun conductorDTO() = ConductorDTO(
+        conductor.id, conductor.nombre, conductor.telefono, conductor.matricula, conductor.modeloVehiculo, conductor.estado,
+    )
+
+    private fun Viaje.aDTO() = ViajeDTO(id, cliente?.id, this.conductor?.id, origen, destino, estado, latitudOrigen, longitudOrigen)
+
+    private fun viajeAleatorio(id: Long): Viaje {
+        val (origen, oLat, oLng) = LUGARES.random()
+        val (destino, dLat, dLng) = LUGARES.filter { it.first != origen }.random()
+        return Viaje(
             id = id,
-            status = RideStatus.ACCEPTED,
-            pickupAddress = pickup,
-            pickupLat = pLat,
-            pickupLng = pLng,
-            dropoffAddress = dropoff,
-            dropoffLat = dLat,
-            dropoffLng = dLng,
-            passengerName = NAMES.random(),
-            passengerPhone = "+51 9${Random.nextInt(10_000_000, 99_999_999)}",
-            notes = NOTES.random(),
-            estimatedFare = Random.nextInt(8, 35).toDouble(),
-            currency = "PEN",
-            createdAt = Instant.now().toString(),
+            cliente = Usuario(
+                id = 500 + id,
+                nombre = NOMBRES.random(),
+                telefono = "+519${Random.nextInt(10_000_000, 99_999_999)}",
+                tipo = TipoUsuario.CLIENTE,
+            ),
+            origen = origen,
+            destino = destino,
+            latitudOrigen = oLat,
+            longitudOrigen = oLng,
+            latitudDestino = dLat,
+            longitudDestino = dLng,
+            estado = EstadoViaje.BUSCANDO_CONDUCTOR,
         )
     }
 
     private fun httpError(code: Int, message: String) = HttpException(
-        Response.error<Any>(code, """{"message":"$message"}""".toResponseBody())
+        Response.error<Any>(code, """{"status":$code,"message":"$message"}""".toResponseBody())
     )
 
     private companion object {
-        val PLACES = listOf(
+        val LUGARES = listOf(
             Triple("Av. Larco 345, Miraflores", -12.1219, -77.0297),
             Triple("Plaza de Armas, Cercado de Lima", -12.0464, -77.0300),
-            Triple("Aeropuerto Jorge ChÃ¡vez, Callao", -12.0219, -77.1143),
+            Triple("Aeropuerto Jorge Chávez, Callao", -12.0219, -77.1143),
             Triple("Jockey Plaza, Santiago de Surco", -12.0850, -76.9772),
             Triple("Parque Kennedy, Miraflores", -12.1211, -77.0300),
             Triple("Av. Javier Prado Este 2465, San Borja", -12.0892, -77.0010),
-            Triple("Real Plaza Salaverry, JesÃºs MarÃ­a", -12.0893, -77.0521),
+            Triple("Real Plaza Salaverry, Jesús María", -12.0893, -77.0521),
             Triple("Barranco, Puente de los Suspiros", -12.1494, -77.0222),
         )
-        val NAMES = listOf("MarÃ­a LÃ³pez", "JosÃ© RamÃ­rez", "Ana Torres", "Luis Mendoza", "Rosa HuamÃ¡n", "Pedro Castillo")
-        val NOTES = listOf(null, "Lleva maletas", "Esperar en la puerta principal", "Paga en efectivo", null)
+        val NOMBRES = listOf("María López", "José Ramírez", "Ana Torres", "Luis Mendoza", "Rosa Huamán", "Pedro Castillo")
     }
 }

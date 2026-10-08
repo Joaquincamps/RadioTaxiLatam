@@ -2,20 +2,21 @@ package com.radiotaxilatam.driver.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.radiotaxilatam.driver.data.ActiveOffer
-import com.radiotaxilatam.driver.data.DriverRepository
-import com.radiotaxilatam.driver.data.model.Driver
-import com.radiotaxilatam.driver.data.model.Ride
+import com.radiotaxilatam.driver.data.ConductorRepositorio
+import com.radiotaxilatam.driver.data.OfertaActiva
+import com.radiotaxilatam.driver.data.model.ConductorDTO
+import com.radiotaxilatam.driver.data.model.Viaje
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel(private val repository: DriverRepository) : ViewModel() {
-    val driver: StateFlow<Driver?> = repository.driver
-    val currentRide: StateFlow<Ride?> = repository.currentRide
-    val offer: StateFlow<ActiveOffer?> = repository.offer
+class HomeViewModel(private val repositorio: ConductorRepositorio) : ViewModel() {
+    val conductor: StateFlow<ConductorDTO?> = repositorio.conductor
+    val viajeActual: StateFlow<Viaje?> = repositorio.viajeActual
+    val viajeLlegadoId: StateFlow<Long?> = repositorio.viajeLlegadoId
+    val oferta: StateFlow<OfertaActiva?> = repositorio.oferta
 
     private val _working = MutableStateFlow(false)
     val working: StateFlow<Boolean> = _working
@@ -24,27 +25,27 @@ class HomeViewModel(private val repository: DriverRepository) : ViewModel() {
     val messages = _messages.receiveAsFlow()
 
     init {
-        refresh()
+        refrescar()
     }
 
-    fun refresh() = launchAction { repository.refresh() }
+    fun refrescar() = launchAction { repositorio.refrescar() }
 
-    fun setAvailable(available: Boolean) = launchAction { repository.setAvailable(available) }
+    fun cambiarDisponibilidad(disponible: Boolean) = launchAction { repositorio.cambiarDisponibilidad(disponible) }
 
-    fun accept(offerId: Long) = launchAction { repository.acceptOffer(offerId) }
+    fun aceptar(ofertaId: Long) = launchAction { repositorio.aceptarOferta(ofertaId) }
 
-    fun reject(offerId: Long) = launchAction { repository.rejectOffer(offerId) }
+    fun rechazar(ofertaId: Long) = launchAction { repositorio.rechazarOferta(ofertaId) }
 
-    fun expire(offerId: Long) {
-        repository.expireOffer(offerId)
+    fun caducar(ofertaId: Long) {
         _messages.trySend("La oferta expiró")
+        viewModelScope.launch { repositorio.ofertaCaducada(ofertaId) }
     }
 
-    fun advance(ride: Ride) = launchAction { repository.advanceRide(ride) }
+    fun avanzar(viaje: Viaje) = launchAction { repositorio.avanzarViaje(viaje) }
 
     fun logout(onDone: () -> Unit) {
         viewModelScope.launch {
-            repository.logout()
+            repositorio.logout()
             onDone()
         }
     }

@@ -2,7 +2,7 @@ package com.radiotaxilatam.driver.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,24 +10,27 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "session")
-private val TOKEN_KEY = stringPreferencesKey("token")
+private val CONDUCTOR_ID_KEY = longPreferencesKey("conductorId")
 
-/** Guarda el token JWT. Se mantiene en memoria para que el interceptor HTTP lo lea sin bloquear. */
+/**
+ * Guarda el id del conductor que inició sesión. El backend de Joaquín no tiene token:
+ * cada ruta lleva el id del conductor en la URL (o en ?conductorId=).
+ */
 class SessionStore(private val context: Context) {
-    private val _token = MutableStateFlow<String?>(null)
-    val token: StateFlow<String?> = _token
+    private val _conductorId = MutableStateFlow<Long?>(null)
+    val conductorId: StateFlow<Long?> = _conductorId
 
     suspend fun load() {
-        _token.value = context.dataStore.data.map { it[TOKEN_KEY] }.first()
+        _conductorId.value = context.dataStore.data.map { it[CONDUCTOR_ID_KEY] }.first()
     }
 
-    suspend fun save(token: String) {
-        context.dataStore.edit { it[TOKEN_KEY] = token }
-        _token.value = token
+    suspend fun save(conductorId: Long) {
+        context.dataStore.edit { it[CONDUCTOR_ID_KEY] = conductorId }
+        _conductorId.value = conductorId
     }
 
     suspend fun clear() {
-        context.dataStore.edit { it.remove(TOKEN_KEY) }
-        _token.value = null
+        context.dataStore.edit { it.remove(CONDUCTOR_ID_KEY) }
+        _conductorId.value = null
     }
 }
