@@ -23,7 +23,10 @@ public class Usuario {
     private String nombre;
 
     @Column(nullable = false, unique = true)
-    private String telefono, password;
+    private String telefono;
+
+    @Column(nullable = false)
+    private String password;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

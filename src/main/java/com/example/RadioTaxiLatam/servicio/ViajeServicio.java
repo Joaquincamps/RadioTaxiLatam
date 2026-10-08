@@ -70,7 +70,12 @@ public class ViajeServicio {
     public ViajeDTO obtenerViajePorId(Long id) {
         Viaje viaje = viajeRepository.findById(id).orElseThrow(() -> new RuntimeException("Viaje no encontrado"));
 
-        return ViajeDTO.builder().id(viaje.getId()).clienteId(viaje.getCliente().getId()).conductorId(viaje.getConductor() != null ? viaje.getConductor().getId() : null).origen(viaje.getOrigen()).destino(viaje.getDestino()).estado(viaje.getEstado()).build();
+        return ViajeDTO.builder()
+                .id(viaje.getId()).clienteId(viaje.getCliente().getId()).conductorId(viaje.getConductor() != null ? viaje.getConductor().getId() : null)
+                .origen(viaje.getOrigen()).destino(viaje.getDestino()).estado(viaje.getEstado())
+                .latitudOrigen(viaje.getLatitudOrigen())
+                .longitudOrigen(viaje.getLongitudOrigen())
+                .build();
     }
 
     public List<Viaje> obtenerTodosLosViajes() {
@@ -108,7 +113,12 @@ public class ViajeServicio {
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
+        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId())
+                .conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen())
+                .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
+                .latitudOrigen(viajeGuardado.getLatitudOrigen())
+                .longitudOrigen(viajeGuardado.getLongitudOrigen())
+                .build();
     }
 
     public ViajeDTO aceptarViaje(Long viajeId, Long conductorId) {
@@ -131,7 +141,12 @@ public class ViajeServicio {
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
+        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId())
+                .conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen())
+                .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
+                .latitudOrigen(viajeGuardado.getLatitudOrigen())
+                .longitudOrigen(viajeGuardado.getLongitudOrigen())
+                .build();
     }
 
     public ViajeDTO iniciarViaje(Long viajeId, Long conductorId) {
@@ -153,7 +168,12 @@ public class ViajeServicio {
         viaje.setEstado(EstadoViaje.EN_CURSO);
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
+        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId())
+                .conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen())
+                .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
+                .latitudOrigen(viajeGuardado.getLatitudOrigen())
+                .longitudOrigen(viajeGuardado.getLongitudOrigen())
+                .build();
 
     }
 
@@ -176,7 +196,12 @@ public class ViajeServicio {
         viaje.setEstado(EstadoViaje.FINALIZADO);
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
+        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente()
+                .getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado
+                .getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
+                .latitudOrigen(viajeGuardado.getLatitudOrigen())
+                .longitudOrigen(viajeGuardado.getLongitudOrigen())
+                .build();
 
     }
 
@@ -202,7 +227,12 @@ public class ViajeServicio {
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado()).build();
+        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado
+                .getCliente().getId()).conductorId(viajeGuardado.getConductor().getId())
+                .origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
+                .latitudOrigen(viajeGuardado.getLatitudOrigen())
+                .longitudOrigen(viajeGuardado.getLongitudOrigen())
+                .build();
 
     }
 }

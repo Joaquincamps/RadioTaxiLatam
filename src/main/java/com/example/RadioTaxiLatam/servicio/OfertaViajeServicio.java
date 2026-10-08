@@ -112,6 +112,8 @@ public class OfertaViajeServicio {
                 .origen(viaje.getOrigen())
                 .destino(viaje.getDestino())
                 .estado(viaje.getEstado())
+                .latitudOrigen(viaje.getLatitudOrigen())
+                .longitudOrigen(viaje.getLongitudOrigen())
                 .build();
 
         return OfertaViajeDto.builder()
@@ -157,6 +159,8 @@ public class OfertaViajeServicio {
                     .origen(viaje.getOrigen())
                     .destino(viaje.getDestino())
                     .estado(viaje.getEstado())
+                    .latitudOrigen(viaje.getLatitudOrigen())
+                    .longitudOrigen(viaje.getLongitudOrigen())
                     .build();
             int segundosRestantes = (int) Duration.between(
                     ahora,
@@ -257,6 +261,8 @@ public class OfertaViajeServicio {
                 .origen(viaje.getOrigen())
                 .destino(viaje.getDestino())
                 .estado(viaje.getEstado())
+                .latitudOrigen(viaje.getLatitudOrigen())
+                .longitudOrigen(viaje.getLongitudOrigen())
                 .build();
 
     }
