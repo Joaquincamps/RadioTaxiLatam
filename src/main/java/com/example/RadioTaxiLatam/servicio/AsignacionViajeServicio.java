@@ -42,7 +42,9 @@ public class AsignacionViajeServicio {
             );
         }
         for(Usuario candidato :candidatos){
+            if(){
 
+            }
         }
         /*
         Antes de completar el for, falta comprobar que el viaje sigue
