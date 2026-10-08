@@ -18,4 +18,9 @@ public interface OfertaViajeRepository extends JpaRepository<OfertaViaje, Long> 
             EstadoOferta estado,
             Instant ahora
     );
+
+    boolean existsByViaje_IdAndConductor_Id(
+            Long viajeId,
+            Long conductorId
+    );
 }

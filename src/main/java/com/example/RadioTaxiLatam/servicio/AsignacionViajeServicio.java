@@ -6,6 +6,7 @@ import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.entidades.Viaje;
+import com.example.RadioTaxiLatam.repositorio.OfertaViajeRepository;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
 import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,14 +26,13 @@ public class AsignacionViajeServicio {
     @Autowired
     private ViajeRepository viajeRepository;
 
+    @Autowired
+    private OfertaViajeRepository ofertaViajeRepository;
+
     public OfertaViajeDto ofrecerViaje(Long viajeId){
         Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(
                 ()-> new ResponseStatusException(HttpStatus.NOT_FOUND ,
                         "El viaje no fue encontrada")
-        );
-
-        List<Usuario> candidatos = usuarioRepository.findByTipoAndEstadoAndLatitudIsNotNullAndLongitudIsNotNullAndUltimaUbicacionAfter(
-                TipoUsuario.CONDUCTOR, EstadoConductor.AVAILABLE, Instant.now().minusSeconds(120)
         );
 
         if(viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR){
@@ -42,7 +42,7 @@ public class AsignacionViajeServicio {
             );
         }
 
-        if(viaje.getLatitudOrigen() !=null  || viaje.getLongitudOrigen() != null){
+        if(viaje.getLatitudOrigen() ==null  || viaje.getLongitudOrigen() == null){
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Lac coordenadas de origen no pueden ser nulas."
@@ -52,12 +52,19 @@ public class AsignacionViajeServicio {
         if(viaje.getConductor() != null){
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "El viaje no tiene conductor asignado."
+                    "El viaje ya tiene un conductor asignado.."
             );
         }
 
-        for(Usuario candidato :candidatos){
+        List<Usuario> candidatos = usuarioRepository.findByTipoAndEstadoAndLatitudIsNotNullAndLongitudIsNotNullAndUltimaUbicacionAfter(
+                TipoUsuario.CONDUCTOR, EstadoConductor.AVAILABLE, Instant.now().minusSeconds(120)
+        );
 
+        for(Usuario candidato :candidatos){
+            boolean tieneOferta = ofertaViajeRepository.existsByViaje_IdAndConductor_Id(viajeId, candidato.getId());
+            if(tieneOferta){
+                continue;
+            }
         }
     }
 }
