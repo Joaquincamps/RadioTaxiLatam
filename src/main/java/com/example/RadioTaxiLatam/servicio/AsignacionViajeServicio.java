@@ -112,4 +112,12 @@ public class AsignacionViajeServicio {
 
         return RADIO_TIERRA_KM * c * 1000;
     }
+
+    public void rechazarYOfrecerSiguiente(Long ofertaId, Long conductorId) {
+        Long viajeId = ofertaViajeServicio.rechazarOferta(
+                ofertaId, conductorId
+        );
+
+        ofrecerViaje(viajeId);
+    }
 }

@@ -267,7 +267,7 @@ public class OfertaViajeServicio {
 
     }
 
-    public void rechazarOferta(Long ofertaId, Long conductorId){
+    public Long rechazarOferta(Long ofertaId, Long conductorId){
         OfertaViaje ofertaViaje = ofertaViajeRepository.findById(ofertaId).orElseThrow(
                 ()-> new ResponseStatusException(HttpStatus.NOT_FOUND ,
                         "La oferta de viaje no fue encontrada")
@@ -307,5 +307,7 @@ public class OfertaViajeServicio {
 
         ofertaViaje.setEstado(EstadoOferta.RECHAZADA);
         ofertaViajeRepository.save(ofertaViaje);
+
+        return ofertaViaje.getViaje().getId();
     }
 }

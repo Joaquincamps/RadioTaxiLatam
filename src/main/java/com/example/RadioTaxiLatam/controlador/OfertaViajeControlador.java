@@ -2,6 +2,7 @@ package com.example.RadioTaxiLatam.controlador;
 
 import com.example.RadioTaxiLatam.Dto.OfertaViajeDto;
 import com.example.RadioTaxiLatam.Dto.ViajeDTO;
+import com.example.RadioTaxiLatam.servicio.AsignacionViajeServicio;
 import com.example.RadioTaxiLatam.servicio.OfertaViajeServicio;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,9 @@ public class OfertaViajeControlador {
 
     @Autowired
     private OfertaViajeServicio ofertaViajeServicio;
+
+    @Autowired
+    private AsignacionViajeServicio asignacionViajeServicio;
 
     @GetMapping("/api/drivers/{id}/offers")
     public ResponseEntity<List<OfertaViajeDto>> obtenerOfertas(@PathVariable Long id){
@@ -29,7 +33,7 @@ public class OfertaViajeControlador {
     @PostMapping("/api/offers/{ofertaId}/reject")
     public ResponseEntity<Void> rechazarOferta(@PathVariable Long ofertaId,
                                                @RequestParam Long conductorId){
-         ofertaViajeServicio.rechazarOferta(ofertaId,conductorId);
+        asignacionViajeServicio.rechazarYOfrecerSiguiente(ofertaId,conductorId);
          return ResponseEntity.ok().build();
     }
 }
