@@ -20,6 +20,8 @@ import java.util.List;
 @Service
 public class AsignacionViajeServicio {
 
+    private static final double RADIO_TIERRA_KM = 6371.0;
+
     @Autowired
     private UsuarioRepository usuarioRepository;
 
@@ -28,6 +30,9 @@ public class AsignacionViajeServicio {
 
     @Autowired
     private OfertaViajeRepository ofertaViajeRepository;
+
+    @Autowired
+    private OfertaViajeServicio ofertaViajeServicio;
 
     public OfertaViajeDto ofrecerViaje(Long viajeId){
         Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(
@@ -60,11 +65,45 @@ public class AsignacionViajeServicio {
                 TipoUsuario.CONDUCTOR, EstadoConductor.AVAILABLE, Instant.now().minusSeconds(120)
         );
 
+        Usuario conductorMasCercano  = new Usuario();
+        double menorDistancia = Double.POSITIVE_INFINITY;
+        double distancia = calcularDistancia(viaje.getLatitudOrigen(),viaje.getLongitudOrigen(),
+                viaje.getConductor().getLatitud(),viaje.getConductor().getLongitud());
+
         for(Usuario candidato :candidatos){
             boolean tieneOferta = ofertaViajeRepository.existsByViaje_IdAndConductor_Id(viajeId, candidato.getId());
             if(tieneOferta){
                 continue;
             }
+            if(distancia < menorDistancia){
+                menorDistancia = distancia;
+                conductorMasCercano = candidato;
+            }
         }
+
+        if(conductorMasCercano == null){
+            return  null;
+        }
+
+    }
+
+    private double calcularDistancia(double latitudOrigen, double longitudOrigen,
+                                     double latitudConductor, double longitudConductor) {
+
+        double latRadOrigen = Math.toRadians(latitudOrigen);
+        double lonRadOrigen = Math.toRadians(longitudOrigen);
+        double latRadCon = Math.toRadians(latitudConductor);
+        double lonRadCon = Math.toRadians(longitudConductor);
+
+        double deltaLat = latRadCon - latRadOrigen;
+        double deltaLon = lonRadCon - lonRadOrigen;
+
+        double a = Math.pow(Math.sin(deltaLat / 2), 2) +
+                Math.cos(latRadOrigen) * Math.cos(latRadCon) *
+                        Math.pow(Math.sin(deltaLon / 2), 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return RADIO_TIERRA_KM * c;
     }
 }
