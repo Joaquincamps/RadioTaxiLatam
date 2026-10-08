@@ -28,7 +28,11 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un cliente");
         }
 
-        Viaje viaje = Viaje.builder().cliente(cliente).origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(EstadoViaje.BUSCANDO_CONDUCTOR).build();
+        Viaje viaje = Viaje.builder().
+                cliente(cliente).origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(EstadoViaje.BUSCANDO_CONDUCTOR)
+                .latitudOrigen(viajeDTO.getLatitudOrigen())
+                .longitudOrigen(viajeDTO.getLongitudOrigen())
+                .build();
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 

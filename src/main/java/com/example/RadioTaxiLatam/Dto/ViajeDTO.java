@@ -23,4 +23,8 @@ public class ViajeDTO {
     private String destino;
 
     private EstadoViaje estado;
+
+    private Double latitudOrigen;
+
+    private Double longitudOrigen;
 }

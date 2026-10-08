@@ -70,12 +70,13 @@ public class AsignacionViajeServicio {
 
         for(Usuario candidato :candidatos){
             boolean tieneOferta = ofertaViajeRepository.existsByViaje_IdAndConductor_Id(viajeId, candidato.getId());
-            double distancia = calcularDistancia(viaje.getLatitudOrigen(),viaje.getLongitudOrigen(),
-                    candidato.getLatitud(),candidato.getLongitud());
 
             if(tieneOferta){
                 continue;
             }
+
+            double distancia = calcularDistancia(viaje.getLatitudOrigen(),viaje.getLongitudOrigen(),
+                    candidato.getLatitud(),candidato.getLongitud());
             if(distancia < menorDistancia){
                 menorDistancia = distancia;
                 conductorMasCercano = candidato;
