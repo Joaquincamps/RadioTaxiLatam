@@ -23,6 +23,9 @@ public class ViajeServicio {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private AsignacionViajeServicio asignacionViajeServicio;
+
     public ViajeDTO crearViaje(ViajeDTO viajeDTO) {
         Usuario cliente = usuarioRepository.findById(viajeDTO.getClienteId()).orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
@@ -58,6 +61,8 @@ public class ViajeServicio {
                 .build();
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
+
+        asignacionViajeServicio.ofrecerViaje(viajeGuardado.getId());
 
         return ViajeDTO.builder()
                 .id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).origen(viajeGuardado.getOrigen())
