@@ -2,8 +2,10 @@ package com.example.RadioTaxiLatam.servicio;
 
 import com.example.RadioTaxiLatam.Dto.OfertaViajeDto;
 import com.example.RadioTaxiLatam.Enum.EstadoConductor;
+import com.example.RadioTaxiLatam.Enum.EstadoOferta;
 import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
+import com.example.RadioTaxiLatam.entidades.OfertaViaje;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.entidades.Viaje;
 import com.example.RadioTaxiLatam.repositorio.OfertaViajeRepository;
@@ -34,27 +36,27 @@ public class AsignacionViajeServicio {
     @Autowired
     private OfertaViajeServicio ofertaViajeServicio;
 
-    public OfertaViajeDto ofrecerViaje(Long viajeId){
+    public OfertaViajeDto ofrecerViaje(Long viajeId) {
         Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(
-                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND ,
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "El viaje no fue encontrada")
         );
 
-        if(viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR){
+        if (viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR) {
             throw new ResponseStatusException(
                     HttpStatus.GONE,
                     "El viaje tiene que estas buscando conductor."
             );
         }
 
-        if(viaje.getLatitudOrigen() ==null  || viaje.getLongitudOrigen() == null){
+        if (viaje.getLatitudOrigen() == null || viaje.getLongitudOrigen() == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Lac coordenadas de origen no pueden ser nulas."
             );
         }
 
-        if(viaje.getConductor() != null){
+        if (viaje.getConductor() != null) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "El viaje ya tiene un conductor asignado.."
@@ -65,26 +67,26 @@ public class AsignacionViajeServicio {
                 TipoUsuario.CONDUCTOR, EstadoConductor.AVAILABLE, Instant.now().minusSeconds(120)
         );
 
-        Usuario conductorMasCercano  = null;
+        Usuario conductorMasCercano = null;
         double menorDistancia = Double.POSITIVE_INFINITY;
 
-        for(Usuario candidato :candidatos){
+        for (Usuario candidato : candidatos) {
             boolean tieneOferta = ofertaViajeRepository.existsByViaje_IdAndConductor_Id(viajeId, candidato.getId());
 
-            if(tieneOferta){
+            if (tieneOferta) {
                 continue;
             }
 
-            double distancia = calcularDistancia(viaje.getLatitudOrigen(),viaje.getLongitudOrigen(),
-                    candidato.getLatitud(),candidato.getLongitud());
-            if(distancia < menorDistancia){
+            double distancia = calcularDistancia(viaje.getLatitudOrigen(), viaje.getLongitudOrigen(),
+                    candidato.getLatitud(), candidato.getLongitud());
+            if (distancia < menorDistancia) {
                 menorDistancia = distancia;
                 conductorMasCercano = candidato;
             }
         }
 
-        if(conductorMasCercano == null){
-            return  null;
+        if (conductorMasCercano == null) {
+            return null;
         }
 
         return ofertaViajeServicio.crearOfertaViaje(
@@ -119,5 +121,13 @@ public class AsignacionViajeServicio {
         );
 
         ofrecerViaje(viajeId);
+    }
+
+    public void procesarOfertasCaducadas() {
+        List<OfertaViaje> ofertas = ofertaViajeRepository.
+                findByEstadoAndExpiraEnLessThanEqual(EstadoOferta.PENDIENTE, Instant.now());
+        for (OfertaViaje oferta : ofertas) {
+
+        }
     }
 }
