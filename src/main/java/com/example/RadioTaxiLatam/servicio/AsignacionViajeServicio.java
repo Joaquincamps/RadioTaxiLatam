@@ -13,6 +13,7 @@ import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
 import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -123,6 +124,7 @@ public class AsignacionViajeServicio {
         ofrecerViaje(viajeId);
     }
 
+    @Scheduled(fixedDelay = 2000)
     public void procesarOfertasCaducadas() {
         List<OfertaViaje> ofertas = ofertaViajeRepository.
                 findByEstadoAndExpiraEnLessThanEqual(EstadoOferta.PENDIENTE, Instant.now());
