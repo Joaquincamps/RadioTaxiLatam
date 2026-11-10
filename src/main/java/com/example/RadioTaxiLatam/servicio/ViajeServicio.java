@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.servicio;
 
+import com.example.RadioTaxiLatam.Dto.CoordenadasDTO;
 import com.example.RadioTaxiLatam.Dto.ViajeDTO;
 import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
@@ -26,6 +27,9 @@ public class ViajeServicio {
     @Autowired
     private AsignacionViajeServicio asignacionViajeServicio;
 
+    @Autowired
+    private GeocodificacionServicio geocodificacionServicio;
+
     public ViajeDTO crearViaje(ViajeDTO viajeDTO) {
         Usuario cliente = usuarioRepository.findById(viajeDTO.getClienteId()).orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
@@ -33,11 +37,16 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un cliente");
         }
 
-        if(viajeDTO.getLongitudOrigen() == null || viajeDTO.getLatitudOrigen() == null){
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Las corrdenadas no pueden ser nulas."
-            );
+        if (viajeDTO.getLatitudOrigen() == null
+                || viajeDTO.getLongitudOrigen() == null) {
+
+            CoordenadasDTO coordenadas =
+                    geocodificacionServicio.obtenerCoordenadas(
+                            viajeDTO.getOrigen()
+                    );
+
+            viajeDTO.setLatitudOrigen(coordenadas.getLatitud());
+            viajeDTO.setLongitudOrigen(coordenadas.getLongitud());
         }
 
         if(viajeDTO.getLatitudOrigen() < -90 || viajeDTO.getLatitudOrigen() > 90){
