@@ -6,26 +6,38 @@ import android.app.NotificationManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import com.radiotaxilatam.driver.data.ConductorRepositorio
+import com.radiotaxilatam.driver.data.RegistroViajes
 import com.radiotaxilatam.driver.data.SessionStore
+import com.radiotaxilatam.driver.data.geo.RutaServicio
 import com.radiotaxilatam.driver.data.mock.MockTaxiApi
 import com.radiotaxilatam.driver.data.remote.ApiFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import org.osmdroid.config.Configuration
 
 class TaxiApp : Application() {
     val appScope = CoroutineScope(SupervisorJob())
     lateinit var repositorio: ConductorRepositorio
         private set
+    lateinit var rutas: RutaServicio
+        private set
 
     override fun onCreate() {
         super.onCreate()
         val session = SessionStore(this)
-        // Lectura única y pequeña del id del conductor al arrancar para decidir la pantalla inicial.
-        runBlocking { session.load() }
+        val registro = RegistroViajes(this)
+        // Lecturas únicas y pequeñas al arrancar: id del conductor (pantalla inicial) y horas de sus viajes.
+        runBlocking {
+            session.load()
+            registro.cargar()
+        }
 
         val api = if (BuildConfig.USE_MOCK_API) MockTaxiApi() else ApiFactory.create()
-        repositorio = ConductorRepositorio(api, session)
+        repositorio = ConductorRepositorio(api, session, registro)
+        rutas = RutaServicio(this)
+        // Los servidores de mapas de OpenStreetMap exigen identificar la app.
+        Configuration.getInstance().userAgentValue = packageName
         createNotificationChannels()
     }
 

@@ -26,21 +26,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.radiotaxilatam.driver.data.ConductorRepositorio
+import com.radiotaxilatam.driver.data.RegistroViaje
 import com.radiotaxilatam.driver.data.model.EstadoViaje
 import com.radiotaxilatam.driver.data.model.Viaje
 import com.radiotaxilatam.driver.ui.AppViewModelFactory
+import com.radiotaxilatam.driver.ui.formatDistance
+import com.radiotaxilatam.driver.ui.formatDuracion
+import com.radiotaxilatam.driver.ui.formatFecha
+import com.radiotaxilatam.driver.ui.formatHora
 import com.radiotaxilatam.driver.ui.home.RideAddresses
+import com.radiotaxilatam.driver.ui.isoAEpochMs
 import com.radiotaxilatam.driver.ui.label
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/** Un viaje del historial con sus horas: las del backend si las tiene, y si no las que registró este móvil. */
+data class ViajeHistorial(
+    val viaje: Viaje,
+    val inicio: Long?,
+    val fin: Long?,
+    val distanciaMetros: Int?,
+)
 
 data class HistoryUiState(
     val viajes: List<Viaje> = emptyList(),
@@ -52,6 +67,7 @@ data class HistoryUiState(
 class HistoryViewModel(private val repositorio: ConductorRepositorio) : ViewModel() {
     private val _state = MutableStateFlow(HistoryUiState())
     val state: StateFlow<HistoryUiState> = _state
+    val registros: StateFlow<Map<Long, RegistroViaje>> = repositorio.registros
 
     init {
         cargar()
@@ -68,6 +84,14 @@ class HistoryViewModel(private val repositorio: ConductorRepositorio) : ViewMode
     }
 }
 
+private fun Viaje.conRegistro(registro: RegistroViaje?) = ViajeHistorial(
+    viaje = this,
+    // Un viaje cancelado nunca se inició: su "inicio" es cuando se aceptó.
+    inicio = isoAEpochMs(fechaInicio) ?: registro?.iniciadoEn ?: registro?.aceptadoEn,
+    fin = isoAEpochMs(fechaFin) ?: registro?.terminadoEn,
+    distanciaMetros = registro?.distanciaMetros,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
@@ -75,6 +99,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = viewModel(factory = AppViewModelFactory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val registros by viewModel.registros.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -93,7 +118,7 @@ fun HistoryScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(state.viajes, key = { it.id }) { RideHistoryItem(it) }
+            items(state.viajes, key = { it.id }) { RideHistoryItem(it.conRegistro(registros[it.id])) }
             item {
                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                     when {
@@ -111,15 +136,25 @@ fun HistoryScreen(
 }
 
 @Composable
-private fun RideHistoryItem(viaje: Viaje) {
+private fun RideHistoryItem(item: ViajeHistorial) {
+    val viaje = item.viaje
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Carrera #${viaje.id}",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        item.inicio?.let { formatFecha(it) } ?: "Carrera #${viaje.id}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (item.inicio != null) {
+                        Text(
+                            "Carrera #${viaje.id}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Text(
                     viaje.estado.label(),
                     style = MaterialTheme.typography.labelLarge,
@@ -131,6 +166,26 @@ private fun RideHistoryItem(viaje: Viaje) {
                 )
             }
             RideAddresses(viaje.origen, viaje.destino)
+            val detalle = listOfNotNull(
+                horario(item),
+                if (viaje.estado == EstadoViaje.FINALIZADO && item.inicio != null && item.fin != null) {
+                    formatDuracion((item.fin - item.inicio) / 1000)
+                } else null,
+                formatDistance(item.distanciaMetros),
+            )
+            Text(
+                detalle.joinToString(" · ").ifEmpty { "Sin horario registrado en este móvil" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (detalle.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
+}
+
+/** "13:12 → 13:34", o solo la hora que se conozca. */
+private fun horario(item: ViajeHistorial): String? = when {
+    item.inicio != null && item.fin != null -> "${formatHora(item.inicio)} → ${formatHora(item.fin)}"
+    item.inicio != null -> formatHora(item.inicio)
+    item.fin != null -> formatHora(item.fin)
+    else -> null
 }

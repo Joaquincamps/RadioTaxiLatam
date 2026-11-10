@@ -137,7 +137,8 @@ class MockTaxiApi : TaxiApi {
         conductor.id, conductor.nombre, conductor.telefono, conductor.matricula, conductor.modeloVehiculo, conductor.estado,
     )
 
-    private fun Viaje.aDTO() = ViajeDTO(id, cliente?.id, this.conductor?.id, origen, destino, estado, latitudOrigen, longitudOrigen)
+    private fun Viaje.aDTO() =
+        ViajeDTO(id, cliente?.id, this.conductor?.id, origen, destino, estado, latitudOrigen, longitudOrigen, latitudDestino, longitudDestino)
 
     private fun viajeAleatorio(id: Long): Viaje {
         val (origen, oLat, oLng) = LUGARES.random()

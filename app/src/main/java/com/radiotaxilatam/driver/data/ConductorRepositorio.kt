@@ -1,6 +1,7 @@
 package com.radiotaxilatam.driver.data
 
 import android.os.SystemClock
+import com.radiotaxilatam.driver.data.geo.Punto
 import com.radiotaxilatam.driver.data.model.ConductorDTO
 import com.radiotaxilatam.driver.data.model.ErrorDTO
 import com.radiotaxilatam.driver.data.model.EstadoConductor
@@ -47,6 +48,7 @@ data class OfertaActiva(val oferta: OfertaViajeDto, val limiteElapsedMs: Long, v
 class ConductorRepositorio(
     private val api: TaxiApi,
     private val session: SessionStore,
+    private val registro: RegistroViajes,
 ) {
     private val _conductor = MutableStateFlow<ConductorDTO?>(null)
     val conductor: StateFlow<ConductorDTO?> = _conductor.asStateFlow()
@@ -60,6 +62,16 @@ class ConductorRepositorio(
 
     private val _oferta = MutableStateFlow<OfertaActiva?>(null)
     val oferta: StateFlow<OfertaActiva?> = _oferta.asStateFlow()
+
+    /** Última ubicación del taxi (la que se envía al backend), para dibujarlo en el mapa. */
+    private val _ubicacion = MutableStateFlow<Punto?>(null)
+    val ubicacion: StateFlow<Punto?> = _ubicacion.asStateFlow()
+
+    /** Desde cuándo (epoch ms) el conductor está en descanso en este móvil; null si está trabajando. */
+    private val _descansoDesde = MutableStateFlow<Long?>(null)
+    val descansoDesde: StateFlow<Long?> = _descansoDesde.asStateFlow()
+
+    val registros: StateFlow<Map<Long, RegistroViaje>> = registro.registros
 
     private val _sesionCaducada = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val sesionCaducada: SharedFlow<Unit> = _sesionCaducada
@@ -97,6 +109,8 @@ class ConductorRepositorio(
         _viajeActual.value = null
         _viajeLlegadoId.value = null
         _oferta.value = null
+        _ubicacion.value = null
+        _descansoDesde.value = null
         ofertasAtendidas.clear()
     }
 
@@ -111,6 +125,7 @@ class ConductorRepositorio(
         val estado = if (disponible) EstadoConductor.AVAILABLE else EstadoConductor.OFFLINE
         api.cambiarDisponibilidad(conductorId, EstadoConductorDTO(estado)).also {
             _conductor.value = it
+            _descansoDesde.value = if (disponible) null else System.currentTimeMillis()
             if (!disponible) _oferta.value = null
         }
     }
@@ -154,6 +169,7 @@ class ConductorRepositorio(
             _viajeActual.value = viaje
             _viajeLlegadoId.value = null
             _conductor.value = _conductor.value?.copy(estado = EstadoConductor.BUSY)
+            registro.actualizar(viaje.id) { it.copy(aceptadoEn = System.currentTimeMillis()) }
             viaje
         }
     }
@@ -184,15 +200,38 @@ class ConductorRepositorio(
             viaje.estado == EstadoViaje.ACEPTADO -> {
                 val dto = api.iniciarViaje(viaje.id, conductorId)
                 _viajeActual.value = viaje.copy(estado = dto.estado)
+                registro.actualizar(viaje.id) { it.copy(iniciadoEn = System.currentTimeMillis()) }
             }
             viaje.estado == EstadoViaje.EN_CURSO -> {
                 api.finalizarViaje(viaje.id, conductorId)
+                registro.actualizar(viaje.id) { it.copy(terminadoEn = System.currentTimeMillis()) }
                 _viajeActual.value = null
                 _viajeLlegadoId.value = null
                 liberarConductor()
             }
             else -> throw AppException(null, "La carrera no se puede avanzar")
         }
+    }
+
+    /**
+     * Cancela el viaje antes de iniciarlo (p. ej. el cliente no acepta el precio: no hay taxímetro).
+     * Su backend deja al conductor en BUSY, así que la app lo vuelve a poner AVAILABLE.
+     */
+    suspend fun cancelarViaje(viaje: Viaje): Result<Unit> = safeCall(
+        bloquear = true,
+        mensajes = mapOf(500 to "No se pudo cancelar la carrera. Puede que ya esté cancelada."),
+    ) {
+        if (viaje.estado != EstadoViaje.ACEPTADO) throw AppException(null, "Solo se puede cancelar antes de iniciar el viaje")
+        api.cancelarViaje(viaje.id, conductorId)
+        registro.actualizar(viaje.id) { it.copy(terminadoEn = System.currentTimeMillis()) }
+        _viajeActual.value = null
+        _viajeLlegadoId.value = null
+        liberarConductor()
+    }
+
+    /** Guarda la distancia de la ruta calculada para mostrarla en el historial. */
+    suspend fun guardarDistancia(viajeId: Long, metros: Int) {
+        registro.actualizar(viajeId) { it.copy(distanciaMetros = metros) }
     }
 
     /** Viajes FINALIZADO y CANCELADO de este conductor, los más recientes primero. */
@@ -203,8 +242,9 @@ class ConductorRepositorio(
             .sortedByDescending { it.id }
     }
 
-    suspend fun enviarUbicacion(latitud: Double, longitud: Double): Result<Unit> = safeCall {
-        api.enviarUbicacion(conductorId, UbicacionDTO(latitud, longitud))
+    suspend fun enviarUbicacion(latitud: Double, longitud: Double): Result<Unit> {
+        _ubicacion.value = Punto(latitud, longitud)
+        return safeCall { api.enviarUbicacion(conductorId, UbicacionDTO(latitud, longitud)) }
     }
 
     private suspend fun obtenerConductor(): ConductorDTO {
@@ -239,6 +279,8 @@ class ConductorRepositorio(
         destino = destino,
         latitudOrigen = latitudOrigen,
         longitudOrigen = longitudOrigen,
+        latitudDestino = latitudDestino,
+        longitudDestino = longitudDestino,
         estado = estado,
     )
 
@@ -274,8 +316,11 @@ class ConductorRepositorio(
     }
 
     private companion object {
-        /** Segundos antes de que caduque la oferta en los que la app la rechaza automáticamente. */
-        const val MARGEN_RECHAZO_S = 2
+        /**
+         * Segundos antes de que caduque la oferta en los que la app la rechaza automáticamente.
+         * El tiempo total lo fija el backend (hoy 20 s en OfertaViajeServicio).
+         */
+        const val MARGEN_RECHAZO_S = 1
     }
 }
 

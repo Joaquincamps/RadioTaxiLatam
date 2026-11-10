@@ -63,6 +63,7 @@ class DriverOnlineService : LifecycleService() {
             startLocationUpdates()
             startPolling()
             stopWhenOffline()
+            silenciarAlResponder()
         }
         return START_STICKY
     }
@@ -77,6 +78,16 @@ class DriverOnlineService : LifecycleService() {
     private fun stopWhenOffline() = lifecycleScope.launch {
         repositorio.conductor.collectLatest { conductor ->
             if (conductor == null || conductor.estado == EstadoConductor.OFFLINE) stopSelf()
+        }
+    }
+
+    /**
+     * En cuanto la oferta se acepta, se rechaza o caduca, se quita su notificación: así deja de sonar
+     * el tono de llamada, que si no seguiría hasta terminar aunque el conductor ya haya respondido.
+     */
+    private fun silenciarAlResponder() = lifecycleScope.launch {
+        repositorio.oferta.collect { oferta ->
+            if (oferta == null) NotificationManagerCompat.from(this@DriverOnlineService).cancel(NOTIFICATION_OFFER)
         }
     }
 

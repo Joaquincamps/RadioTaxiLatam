@@ -46,6 +46,9 @@ data class ViajeDTO(
     val estado: EstadoViaje = EstadoViaje.DESCONOCIDO,
     val latitudOrigen: Double? = null,
     val longitudOrigen: Double? = null,
+    // Aún no los manda su backend (su ViajeDTO no los tiene); si los añade, la app ya no necesita geocodificar el destino.
+    val latitudDestino: Double? = null,
+    val longitudDestino: Double? = null,
 )
 
 /** Oferta de un viaje a este conductor. [segundosRestantes] es relativo, no depende del reloj del móvil. */
@@ -82,6 +85,9 @@ data class Viaje(
     val latitudDestino: Double? = null,
     val longitudDestino: Double? = null,
     val estado: EstadoViaje = EstadoViaje.DESCONOCIDO,
+    // Aún no existen en su backend (ISO-8601). Mientras tanto, el móvil registra sus propias horas (RegistroViajes).
+    val fechaInicio: String? = null,
+    val fechaFin: String? = null,
 )
 
 fun Usuario.aConductorDTO() = ConductorDTO(id, nombre, telefono, matricula, modeloVehiculo, estado)

@@ -9,6 +9,8 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,13 +22,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,8 +45,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -57,8 +57,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -67,14 +69,20 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.radiotaxilatam.driver.R
 import com.radiotaxilatam.driver.data.OfertaActiva
+import com.radiotaxilatam.driver.data.geo.Punto
+import com.radiotaxilatam.driver.data.geo.Ruta
 import com.radiotaxilatam.driver.data.model.EstadoConductor
 import com.radiotaxilatam.driver.data.model.EstadoViaje
 import com.radiotaxilatam.driver.data.model.Viaje
 import com.radiotaxilatam.driver.service.DriverOnlineService
 import com.radiotaxilatam.driver.ui.AppViewModelFactory
 import com.radiotaxilatam.driver.ui.formatDistance
+import com.radiotaxilatam.driver.ui.formatDuracion
+import com.radiotaxilatam.driver.ui.formatHora
 import com.radiotaxilatam.driver.ui.label
+import com.radiotaxilatam.driver.ui.mapa.MapaViaje
 import com.radiotaxilatam.driver.ui.theme.OnlineGreen
 import kotlinx.coroutines.delay
 
@@ -91,8 +99,13 @@ fun HomeScreen(
     val viajeLlegadoId by viewModel.viajeLlegadoId.collectAsStateWithLifecycle()
     val oferta by viewModel.oferta.collectAsStateWithLifecycle()
     val working by viewModel.working.collectAsStateWithLifecycle()
+    val ubicacion by viewModel.ubicacion.collectAsStateWithLifecycle()
+    val descansoDesde by viewModel.descansoDesde.collectAsStateWithLifecycle()
+    val rutaOferta by viewModel.rutaOferta.collectAsStateWithLifecycle()
+    val rutaViaje by viewModel.rutaViaje.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var showPermissionHelp by remember { mutableStateOf(false) }
+    var viajeACancelar by remember { mutableStateOf<Viaje?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -162,15 +175,12 @@ fun HomeScreen(
 
             AvailabilityCard(
                 status = status,
+                descansoDesde = descansoDesde,
                 enabled = !working && conductor != null && viaje == null,
-                onToggle = { wantOnline ->
-                    if (!wantOnline) {
-                        viewModel.cambiarDisponibilidad(false)
-                    } else if (hasLocationPermission(context)) {
-                        viewModel.cambiarDisponibilidad(true)
-                    } else {
-                        permissionLauncher.launch(requiredPermissions())
-                    }
+                onDescanso = { viewModel.cambiarDisponibilidad(false) },
+                onVolver = {
+                    if (hasLocationPermission(context)) viewModel.cambiarDisponibilidad(true)
+                    else permissionLauncher.launch(requiredPermissions())
                 },
             )
 
@@ -180,8 +190,11 @@ fun HomeScreen(
                 actual != null -> CurrentRideCard(
                     viaje = actual,
                     llegado = viajeLlegadoId == actual.id,
+                    ruta = rutaViaje?.takeIf { it.viajeId == actual.id },
+                    taxi = ubicacion,
                     working = working,
                     onAdvance = { viewModel.avanzar(actual) },
+                    onCancel = { viajeACancelar = actual },
                     onNavigate = { openNavigation(context, actual) },
                     onCall = { actual.cliente?.telefono?.let { dial(context, it) } },
                 )
@@ -194,9 +207,30 @@ fun HomeScreen(
     oferta?.let { activa ->
         OfferDialog(
             activa = activa,
+            ruta = rutaOferta?.takeIf { it.viajeId == activa.oferta.viaje.id },
             onAccept = { viewModel.aceptar(activa.oferta.id) },
             onReject = { viewModel.rechazar(activa.oferta.id) },
             onExpired = { viewModel.caducar(activa.oferta.id) },
+        )
+    }
+
+    viajeACancelar?.let { v ->
+        AlertDialog(
+            onDismissRequest = { viajeACancelar = null },
+            title = { Text("¿Cancelar la carrera?") },
+            text = {
+                Text(
+                    "Úsalo si el cliente no acepta el precio o no se presenta. La carrera #${v.id} quedará " +
+                        "cancelada y volverás a estar disponible."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viajeACancelar = null
+                    viewModel.cancelar(v)
+                }) { Text("Sí, cancelar", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { viajeACancelar = null }) { Text("No") } },
         )
     }
 
@@ -220,34 +254,50 @@ private fun Centered(content: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) { content() }
 }
 
+/**
+ * Estado del conductor con el botón para tomarse un descanso (se desconecta y deja de recibir carreras)
+ * y para volver a trabajar. Con una carrera en curso no hay botón: primero hay que terminarla o cancelarla.
+ */
 @Composable
-private fun AvailabilityCard(status: EstadoConductor?, enabled: Boolean, onToggle: (Boolean) -> Unit) {
+private fun AvailabilityCard(
+    status: EstadoConductor?,
+    descansoDesde: Long?,
+    enabled: Boolean,
+    onDescanso: () -> Unit,
+    onVolver: () -> Unit,
+) {
     val online = status == EstadoConductor.AVAILABLE || status == EstadoConductor.BUSY
     val (title, subtitle) = when (status) {
         EstadoConductor.AVAILABLE -> "Disponible" to "Recibiendo carreras"
         EstadoConductor.BUSY -> "Ocupado" to "Tienes una carrera en curso"
-        else -> "No disponible" to "No recibirás carreras"
+        else -> "En descanso" to (descansoDesde?.let { "Desde las ${formatHora(it)} · no recibirás carreras" }
+            ?: "Desconectado · no recibirás carreras")
     }
+    val contenido = if (online) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     Card(
         colors = CardDefaults.cardColors(
             containerColor = if (online) OnlineGreen else MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = if (online) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+            contentColor = contenido,
         ),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+            when (status) {
+                EstadoConductor.AVAILABLE -> OutlinedButton(
+                    onClick = onDescanso,
+                    enabled = enabled,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.7f)),
+                ) { Text("Tomar un descanso") }
+                EstadoConductor.OFFLINE -> Button(
+                    onClick = onVolver,
+                    enabled = enabled,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                ) { Text("Volver a trabajar", style = MaterialTheme.typography.titleMedium) }
+                else -> Unit
             }
-            Switch(
-                checked = online,
-                onCheckedChange = onToggle,
-                enabled = enabled,
-                colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)),
-            )
         }
     }
 }
@@ -275,7 +325,7 @@ private fun WaitingCard() {
 @Composable
 private fun OfflineHint() {
     Text(
-        "Activa \"Disponible\" para empezar a recibir carreras.",
+        "Pulsa \"Volver a trabajar\" cuando quieras recibir carreras de nuevo.",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -287,8 +337,11 @@ private fun OfflineHint() {
 private fun CurrentRideCard(
     viaje: Viaje,
     llegado: Boolean,
+    ruta: RutaDeViaje?,
+    taxi: Punto?,
     working: Boolean,
     onAdvance: () -> Unit,
+    onCancel: () -> Unit,
     onNavigate: () -> Unit,
     onCall: () -> Unit,
 ) {
@@ -301,7 +354,17 @@ private fun CurrentRideCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
+            when {
+                ruta?.ruta != null -> MapaViaje(
+                    ruta = ruta.ruta,
+                    taxi = taxi,
+                    onTap = onNavigate,
+                    modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp)),
+                )
+                ruta?.calculando == true -> Text("Cargando mapa…", style = MaterialTheme.typography.bodySmall)
+            }
             RideAddresses(viaje.origen, viaje.destino)
+            ruta?.ruta?.let { LabeledLine("Recorrido", textoDistancia(it)) }
             viaje.cliente?.nombre?.let { LabeledLine("Pasajero", it) }
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -331,22 +394,35 @@ private fun CurrentRideCard(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                 ) { Text(it, style = MaterialTheme.typography.titleMedium) }
             }
+            // Sin taxímetro el precio se acuerda al recoger: si el cliente no lo acepta, se cancela antes de iniciar.
+            if (viaje.estado == EstadoViaje.ACEPTADO) {
+                TextButton(onClick = onCancel, enabled = !working, modifier = Modifier.fillMaxWidth()) {
+                    Text("Cancelar viaje", color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
     }
+}
+
+/** "8.4 km · ~22 min", o "≈ 6.1 km en línea recta" si no se pudo calcular por calles. */
+private fun textoDistancia(ruta: Ruta): String {
+    val distancia = formatDistance(ruta.distanciaMetros).orEmpty()
+    if (!ruta.porCalles) return "≈ $distancia en línea recta"
+    return listOfNotNull(distancia, formatDuracion(ruta.duracionSegundos?.toLong())?.let { "~$it" }).joinToString(" · ")
 }
 
 @Composable
 fun RideAddresses(origen: String, destino: String?) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AddressLine(Icons.Default.Place, "Origen", origen)
-        destino?.let { AddressLine(Icons.Default.LocationOn, "Destino", it) }
+        AddressLine(R.drawable.ic_pin_origen, "Origen", origen)
+        destino?.let { AddressLine(R.drawable.ic_pin_destino, "Destino", it) }
     }
 }
 
 @Composable
-private fun AddressLine(icon: ImageVector, label: String, address: String) {
+private fun AddressLine(icono: Int, label: String, address: String) {
     Row(verticalAlignment = Alignment.Top) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp).padding(top = 2.dp))
+        Image(painterResource(icono), contentDescription = null, modifier = Modifier.size(20.dp).padding(top = 2.dp))
         Spacer(Modifier.width(8.dp))
         Column {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -363,6 +439,7 @@ private fun LabeledLine(label: String, value: String) {
 @Composable
 private fun OfferDialog(
     activa: OfertaActiva,
+    ruta: RutaDeViaje?,
     onAccept: () -> Unit,
     onReject: () -> Unit,
     onExpired: () -> Unit,
@@ -393,6 +470,11 @@ private fun OfferDialog(
                 Text("Quedan $secondsLeft s para responder", style = MaterialTheme.typography.bodySmall)
                 RideAddresses(oferta.viaje.origen, oferta.viaje.destino)
                 formatDistance(oferta.distanciaRecogidaMetros)?.let { LabeledLine("Distancia al origen", it) }
+                when {
+                    ruta?.ruta != null -> LabeledLine("Distancia del viaje", textoDistancia(ruta.ruta))
+                    ruta?.calculando == true && oferta.viaje.destino != null ->
+                        LabeledLine("Distancia del viaje", "calculando…")
+                }
             }
         },
         confirmButton = {
