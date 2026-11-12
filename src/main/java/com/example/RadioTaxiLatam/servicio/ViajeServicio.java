@@ -33,9 +33,6 @@ public class ViajeServicio {
     public ViajeDTO crearViaje(ViajeDTO viajeDTO) {
         Usuario cliente = usuarioRepository.findById(viajeDTO.getClienteId()).orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
-        if (cliente.getTipo() != TipoUsuario.CLIENTE) {
-            throw new RuntimeException("El usuario indicado no es un cliente");
-        }
 
         if (viajeDTO.getLatitudOrigen() == null
                 || viajeDTO.getLongitudOrigen() == null) {
@@ -63,10 +60,12 @@ public class ViajeServicio {
             );
         }
 
-        Viaje viaje = Viaje.builder().
-                cliente(cliente).origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(EstadoViaje.BUSCANDO_CONDUCTOR)
+        Viaje viaje = Viaje.builder().origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(EstadoViaje.BUSCANDO_CONDUCTOR)
                 .latitudOrigen(viajeDTO.getLatitudOrigen())
                 .longitudOrigen(viajeDTO.getLongitudOrigen())
+                .telefonoPasajero(viajeDTO.getTelefonoPasajero())
+                .nombrePasajero(viajeDTO.getNombrePasajero())
+                .llamadaVapiId(viajeDTO.getLlamadaVapiId())
                 .build();
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
@@ -78,6 +77,9 @@ public class ViajeServicio {
                 .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
                 .latitudOrigen(viajeDTO.getLatitudOrigen())
                 .longitudOrigen(viajeDTO.getLongitudOrigen())
+                .telefonoPasajero(viajeGuardado.getTelefonoPasajero())
+                .nombrePasajero(viajeGuardado.getNombrePasajero())
+                .llamadaVapiId(viajeGuardado.getLlamadaVapiId())
                 .build();
     }
 
