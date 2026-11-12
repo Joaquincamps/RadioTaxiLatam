@@ -242,10 +242,10 @@ public class ViajeServicio {
             throw new RuntimeException("El usuario indicado no es un conductor.");
         }
 
-        if (viaje.getEstado() != EstadoViaje.ACEPTADO) {
+        if (viaje.getEstado() != EstadoViaje.LLEGADO) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Solo puedes registrar la llegada de un viaje aceptado."
+                    "Debes registrar la llegada antes de iniciar el viaje."
             );
         }
 
