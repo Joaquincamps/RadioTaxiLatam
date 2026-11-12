@@ -133,11 +133,21 @@ public class ViajeServicio {
 
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId())
-                .conductorId(viajeGuardado.getConductor().getId()).origen(viajeGuardado.getOrigen())
+        return ViajeDTO.builder()
+                .id(viajeGuardado.getId())
+                .clienteId(
+                        viajeGuardado.getCliente() != null
+                                ? viajeGuardado.getCliente().getId()
+                                : null
+                )
+                .conductorId(viajeGuardado.getConductor().getId())
+                .origen(viajeGuardado.getOrigen())
                 .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
                 .latitudOrigen(viajeGuardado.getLatitudOrigen())
                 .longitudOrigen(viajeGuardado.getLongitudOrigen())
+                .telefonoPasajero(viajeGuardado.getTelefonoPasajero())
+                .nombrePasajero(viajeGuardado.getNombrePasajero())
+                .llamadaVapiId(viajeGuardado.getLlamadaVapiId())
                 .build();
     }
 
