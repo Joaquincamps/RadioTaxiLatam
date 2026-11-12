@@ -130,6 +130,7 @@ public class UsuarioServicio {
                         List.of(
                                 EstadoViaje.ASIGNADO,
                                 EstadoViaje.ACEPTADO,
+                                EstadoViaje.LLEGADO,
                                 EstadoViaje.EN_CURSO
                         )
                 );

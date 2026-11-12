@@ -75,4 +75,14 @@ public class ViajeController {
                 )
         );
     }
+
+    @PostMapping("/{viajeId}/llegada")
+    public ResponseEntity<ViajeDTO> registrarLlegada(
+            @PathVariable("viajeId") Long viajeId,
+            @RequestParam("conductorId") Long conductorId
+    ) {
+        return ResponseEntity.ok(
+                viajeServicio.registrarLlegada(viajeId, conductorId)
+        );
+    }
 }

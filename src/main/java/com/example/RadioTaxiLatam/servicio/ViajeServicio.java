@@ -167,6 +167,7 @@ public class ViajeServicio {
                 if (v.getConductor().getId().equals(conductorId)) {
                     if (v.getEstado() == EstadoViaje.ASIGNADO ||
                             v.getEstado() == EstadoViaje.ACEPTADO ||
+                            v.getEstado() == EstadoViaje.LLEGADO||
                             v.getEstado() == EstadoViaje.EN_CURSO) {
                         throw new RuntimeException("No se puede asignar el viaje");
                     }
@@ -329,6 +330,7 @@ public class ViajeServicio {
         }
 
         if (viaje.getEstado() == EstadoViaje.ACEPTADO ||
+               viaje.getEstado() == EstadoViaje.LLEGADO ||
                 viaje.getEstado() == EstadoViaje.EN_CURSO ||
                 viaje.getEstado() == EstadoViaje.ASIGNADO) {
             viaje.setEstado(EstadoViaje.CANCELADO);
@@ -381,7 +383,8 @@ public class ViajeServicio {
 
         if (estado != EstadoViaje.BUSCANDO_CONDUCTOR
                 && estado != EstadoViaje.ASIGNADO
-                && estado != EstadoViaje.ACEPTADO) {
+                && estado != EstadoViaje.ACEPTADO
+                && estado != EstadoViaje.LLEGADO) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "El viaje ya no se puede cancelar por esta vía."
