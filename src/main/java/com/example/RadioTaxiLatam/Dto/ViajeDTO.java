@@ -27,4 +27,8 @@ public class ViajeDTO {
     private Double latitudOrigen;
 
     private Double longitudOrigen;
+
+    private String telefonoPasajero;
+    private String nombrePasajero;
+    private String llamadaVapiId;
 }

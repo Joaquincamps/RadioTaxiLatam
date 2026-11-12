@@ -19,7 +19,7 @@ public class Viaje {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "cliente_id", nullable = false)
+    @JoinColumn(name = "cliente_id", nullable = true)
     private Usuario cliente;
 
     @ManyToOne
@@ -36,6 +36,10 @@ public class Viaje {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoViaje estado;
+
+    private String telefonoPasajero;
+    private String nombrePasajero;
+    private String llamadaVapiId;
 
 
 }
