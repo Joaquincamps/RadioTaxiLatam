@@ -39,6 +39,14 @@ public class ViajeServicio {
 
         String llamadaVapiId = viajeDTO.getLlamadaVapiId();
 
+        if (llamadaVapiId == null || llamadaVapiId.isBlank()) {
+            llamadaVapiId = null;
+        } else {
+            llamadaVapiId = llamadaVapiId.trim();
+        }
+
+        viajeDTO.setLlamadaVapiId(llamadaVapiId);
+
         if (llamadaVapiId != null && !llamadaVapiId.isBlank()) {
             Optional<Viaje> viajeExistente =
                     viajeRepository.findByLlamadaVapiId(llamadaVapiId);
