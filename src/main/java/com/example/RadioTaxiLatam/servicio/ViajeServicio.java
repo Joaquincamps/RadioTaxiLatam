@@ -3,10 +3,13 @@ package com.example.RadioTaxiLatam.servicio;
 import com.example.RadioTaxiLatam.Dto.CoordenadasDTO;
 import com.example.RadioTaxiLatam.Dto.ViajeDTO;
 import com.example.RadioTaxiLatam.Enum.EstadoConductor;
+import com.example.RadioTaxiLatam.Enum.EstadoOferta;
 import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
+import com.example.RadioTaxiLatam.entidades.OfertaViaje;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.entidades.Viaje;
+import com.example.RadioTaxiLatam.repositorio.OfertaViajeRepository;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
 import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +37,9 @@ public class ViajeServicio {
 
     @Autowired
     private GeocodificacionServicio geocodificacionServicio;
+
+    @Autowired
+    private OfertaViajeRepository ofertaViajeRepository;
 
     public ViajeDTO crearViaje(ViajeDTO viajeDTO) {
 
@@ -344,5 +350,64 @@ public class ViajeServicio {
                 .llamadaVapiId(viajeGuardado.getLlamadaVapiId())
                 .build();
 
+    }
+
+    @Transactional
+    public ViajeDTO cancelarViajePorPasajero(Long viajeId, String llamadaVapiId){
+        if( llamadaVapiId == null  || llamadaVapiId.isBlank()){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "EL ID de Vapi no puede ser vacío o nulo."
+            );
+        }
+        Viaje viajeBuscar = viajeRepository.findById(viajeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "El viaje no existe."
+                ));
+        if (!llamadaVapiId.trim().equals(viajeBuscar.getLlamadaVapiId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,"Los ids de Vapi no coinciden."
+            );
+        }
+        if(viajeBuscar.getEstado() == EstadoViaje.CANCELADO){
+            return obtenerViajePorId(viajeId);
+        }
+
+        EstadoViaje estado = viajeBuscar.getEstado();
+
+        if (estado != EstadoViaje.BUSCANDO_CONDUCTOR
+                && estado != EstadoViaje.ASIGNADO
+                && estado != EstadoViaje.ACEPTADO) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El viaje ya no se puede cancelar por esta vía."
+            );
+        }
+
+        viajeBuscar.setEstado(EstadoViaje.CANCELADO);
+
+        List<OfertaViaje> ofertasPendientes =
+                ofertaViajeRepository.findByViaje_IdAndEstado(
+                        viajeId,
+                        EstadoOferta.PENDIENTE
+                );
+
+        for (OfertaViaje oferta : ofertasPendientes) {
+            oferta.setEstado(EstadoOferta.CANCELADA);
+        }
+
+        ofertaViajeRepository.saveAll(ofertasPendientes);
+
+        Usuario conductor = viajeBuscar.getConductor();
+
+        if (conductor != null) {
+            conductor.setEstado(EstadoConductor.AVAILABLE);
+            usuarioRepository.save(conductor);
+        }
+
+        viajeRepository.save(viajeBuscar);
+
+        return obtenerViajePorId(viajeId);
     }
 }

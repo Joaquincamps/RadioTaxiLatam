@@ -28,4 +28,9 @@ public interface OfertaViajeRepository extends JpaRepository<OfertaViaje, Long> 
             EstadoOferta estado,
             Instant ahora
     );
+
+    List<OfertaViaje> findByViaje_IdAndEstado(
+            Long viajeId,
+            EstadoOferta estado
+    );
 }
