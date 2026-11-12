@@ -114,6 +114,9 @@ public class OfertaViajeServicio {
                 .estado(viaje.getEstado())
                 .latitudOrigen(viaje.getLatitudOrigen())
                 .longitudOrigen(viaje.getLongitudOrigen())
+                .telefonoPasajero(viaje.getTelefonoPasajero())
+                .nombrePasajero(viaje.getNombrePasajero())
+                .llamadaVapiId(viaje.getLlamadaVapiId())
                 .build();
 
         return OfertaViajeDto.builder()
@@ -161,6 +164,9 @@ public class OfertaViajeServicio {
                     .estado(viaje.getEstado())
                     .latitudOrigen(viaje.getLatitudOrigen())
                     .longitudOrigen(viaje.getLongitudOrigen())
+                    .telefonoPasajero(viaje.getTelefonoPasajero())
+                    .nombrePasajero(viaje.getNombrePasajero())
+                    .llamadaVapiId(viaje.getLlamadaVapiId())
                     .build();
             int segundosRestantes = (int) Duration.between(
                     ahora,
@@ -263,6 +269,9 @@ public class OfertaViajeServicio {
                 .estado(viaje.getEstado())
                 .latitudOrigen(viaje.getLatitudOrigen())
                 .longitudOrigen(viaje.getLongitudOrigen())
+                .telefonoPasajero(viaje.getTelefonoPasajero())
+                .nombrePasajero(viaje.getNombrePasajero())
+                .llamadaVapiId(viaje.getLlamadaVapiId())
                 .build();
 
     }
