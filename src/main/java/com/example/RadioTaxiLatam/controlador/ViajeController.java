@@ -1,5 +1,6 @@
 package com.example.RadioTaxiLatam.controlador;
 
+import com.example.RadioTaxiLatam.Dto.CancelarViajeDTO;
 import com.example.RadioTaxiLatam.Dto.ViajeDTO;
 import com.example.RadioTaxiLatam.entidades.Viaje;
 import com.example.RadioTaxiLatam.servicio.ViajeServicio;
@@ -60,5 +61,18 @@ public class ViajeController {
     public ResponseEntity<ViajeDTO> cancelarViaje(@PathVariable Long viajeId,
                                                    @PathVariable Long conductorId) {
         return ResponseEntity.ok(viajeServicio.cancelarViaje(viajeId, conductorId));
+    }
+
+    @PostMapping("/{viajeId}/cancelar-pasajero")
+    public ResponseEntity<ViajeDTO> cancelarViajePorPasajero(
+            @PathVariable("viajeId") Long viajeId,
+            @RequestBody CancelarViajeDTO solicitud
+    ) {
+        return ResponseEntity.ok(
+                viajeServicio.cancelarViajePorPasajero(
+                        viajeId,
+                        solicitud.getLlamadaVapiId()
+                )
+        );
     }
 }
