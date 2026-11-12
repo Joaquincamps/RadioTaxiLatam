@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ViajeServicio {
@@ -34,6 +35,17 @@ public class ViajeServicio {
     private GeocodificacionServicio geocodificacionServicio;
 
     public ViajeDTO crearViaje(ViajeDTO viajeDTO) {
+
+        String llamadaVapiId = viajeDTO.getLlamadaVapiId();
+
+        if (llamadaVapiId != null && !llamadaVapiId.isBlank()) {
+            Optional<Viaje> viajeExistente =
+                    viajeRepository.findByLlamadaVapiId(llamadaVapiId);
+
+            if (viajeExistente.isPresent()) {
+                return obtenerViajePorId(viajeExistente.get().getId());
+            }
+        }
 
         if (viajeDTO.getLatitudOrigen() == null
                 || viajeDTO.getLongitudOrigen() == null) {
