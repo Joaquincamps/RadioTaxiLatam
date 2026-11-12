@@ -243,7 +243,10 @@ public class ViajeServicio {
         }
 
         if (viaje.getEstado() != EstadoViaje.ACEPTADO) {
-            throw new RuntimeException("El estado del viaje tiene que ser aceptado");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Solo puedes registrar la llegada de un viaje aceptado."
+            );
         }
 
         if (!viaje.getConductor().getId().equals(conductor.getId())) {
@@ -416,7 +419,7 @@ public class ViajeServicio {
 
         Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(
                 ()-> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "El viaje no existe"
+                        HttpStatus.NOT_FOUND, "El viaje no existe"
                 )
         );
 
