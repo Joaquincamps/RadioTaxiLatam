@@ -98,6 +98,7 @@ public class ViajeServicio {
                 .telefonoPasajero(viaje.getTelefonoPasajero())
                 .nombrePasajero(viaje.getNombrePasajero())
                 .llamadaVapiId(viaje.getLlamadaVapiId())
+                .finalizadoEn(viaje.getFinalizadoEn())
                 .build();
     }
 
