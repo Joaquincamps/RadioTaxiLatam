@@ -31,8 +31,6 @@ public class ViajeServicio {
     private GeocodificacionServicio geocodificacionServicio;
 
     public ViajeDTO crearViaje(ViajeDTO viajeDTO) {
-        Usuario cliente = usuarioRepository.findById(viajeDTO.getClienteId()).orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
-
 
         if (viajeDTO.getLatitudOrigen() == null
                 || viajeDTO.getLongitudOrigen() == null) {
@@ -73,7 +71,8 @@ public class ViajeServicio {
         asignacionViajeServicio.ofrecerViaje(viajeGuardado.getId());
 
         return ViajeDTO.builder()
-                .id(viajeGuardado.getId()).clienteId(viajeGuardado.getCliente().getId()).origen(viajeGuardado.getOrigen())
+                .id(viajeGuardado.getId())
+                .origen(viajeGuardado.getOrigen())
                 .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
                 .latitudOrigen(viajeDTO.getLatitudOrigen())
                 .longitudOrigen(viajeDTO.getLongitudOrigen())
