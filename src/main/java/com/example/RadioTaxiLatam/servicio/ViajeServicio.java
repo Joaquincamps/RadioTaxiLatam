@@ -10,6 +10,7 @@ import com.example.RadioTaxiLatam.entidades.Viaje;
 import com.example.RadioTaxiLatam.repositorio.UsuarioRepository;
 import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,8 +82,23 @@ public class ViajeServicio {
                 .llamadaVapiId(viajeDTO.getLlamadaVapiId())
                 .build();
 
-        Viaje viajeGuardado = viajeRepository.save(viaje);
+        Viaje viajeGuardado;
 
+        try {
+            viajeGuardado = viajeRepository.saveAndFlush(viaje);
+
+        } catch (DataIntegrityViolationException e) {
+            if (llamadaVapiId != null && !llamadaVapiId.isBlank()) {
+                Optional<Viaje> existente =
+                        viajeRepository.findByLlamadaVapiId(llamadaVapiId);
+
+                if (existente.isPresent()) {
+                    return obtenerViajePorId(existente.get().getId());
+                }
+            }
+
+            throw e;
+        }
         asignacionViajeServicio.ofrecerViaje(viajeGuardado.getId());
 
         return ViajeDTO.builder()

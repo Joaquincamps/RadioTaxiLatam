@@ -41,6 +41,8 @@ public class Viaje {
 
     private String telefonoPasajero;
     private String nombrePasajero;
+
+    @Column(unique = true)
     private String llamadaVapiId;
 
     private Instant finalizadoEn;
