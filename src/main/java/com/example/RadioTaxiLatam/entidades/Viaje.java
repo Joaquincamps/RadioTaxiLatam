@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @Entity
 @Data
 @Builder
@@ -40,6 +42,8 @@ public class Viaje {
     private String telefonoPasajero;
     private String nombrePasajero;
     private String llamadaVapiId;
+
+    private Instant finalizadoEn;
 
 
 }

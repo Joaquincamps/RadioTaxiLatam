@@ -2,6 +2,7 @@ package com.example.RadioTaxiLatam.servicio;
 
 import com.example.RadioTaxiLatam.Dto.CoordenadasDTO;
 import com.example.RadioTaxiLatam.Dto.ViajeDTO;
+import com.example.RadioTaxiLatam.Enum.EstadoConductor;
 import com.example.RadioTaxiLatam.Enum.EstadoViaje;
 import com.example.RadioTaxiLatam.Enum.TipoUsuario;
 import com.example.RadioTaxiLatam.entidades.Usuario;
@@ -11,8 +12,10 @@ import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -224,6 +227,7 @@ public class ViajeServicio {
 
     }
 
+    @Transactional
     public ViajeDTO finalizarViaje(Long viajeId, Long conductorId) {
         Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(() -> new RuntimeException("El viaje no existe."));
         Usuario conductor = usuarioRepository.findById(conductorId).orElseThrow(() -> new RuntimeException("El conductor no existe."));
@@ -241,7 +245,12 @@ public class ViajeServicio {
         }
 
         viaje.setEstado(EstadoViaje.FINALIZADO);
+        viaje.setFinalizadoEn(Instant.now());
+
+        conductor.setEstado(EstadoConductor.AVAILABLE);
+
         Viaje viajeGuardado = viajeRepository.save(viaje);
+        usuarioRepository.save(conductor);
 
         return ViajeDTO.builder().id(viajeGuardado.getId())
                 .clienteId(
@@ -256,6 +265,7 @@ public class ViajeServicio {
                 .telefonoPasajero(viajeGuardado.getTelefonoPasajero())
                 .nombrePasajero(viajeGuardado.getNombrePasajero())
                 .llamadaVapiId(viajeGuardado.getLlamadaVapiId())
+                .finalizadoEn(viajeGuardado.getFinalizadoEn())
                 .build();
 
     }
