@@ -86,10 +86,15 @@ public class ViajeServicio {
         Viaje viaje = viajeRepository.findById(id).orElseThrow(() -> new RuntimeException("Viaje no encontrado"));
 
         return ViajeDTO.builder()
-                .id(viaje.getId()).clienteId(viaje.getCliente().getId()).conductorId(viaje.getConductor() != null ? viaje.getConductor().getId() : null)
+                .id(viaje.getId())
+                .clienteId(viaje.getCliente() != null ? viaje.getCliente().getId() : null)
+                .conductorId(viaje.getConductor() != null ? viaje.getConductor().getId() : null)
                 .origen(viaje.getOrigen()).destino(viaje.getDestino()).estado(viaje.getEstado())
                 .latitudOrigen(viaje.getLatitudOrigen())
                 .longitudOrigen(viaje.getLongitudOrigen())
+                .telefonoPasajero(viaje.getTelefonoPasajero())
+                .nombrePasajero(viaje.getNombrePasajero())
+                .llamadaVapiId(viaje.getLlamadaVapiId())
                 .build();
     }
 
