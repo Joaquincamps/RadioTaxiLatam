@@ -410,4 +410,39 @@ public class ViajeServicio {
 
         return obtenerViajePorId(viajeId);
     }
+
+    @Transactional
+    public ViajeDTO registrarLlegada(Long viajeId, Long conductorId){
+
+        Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(
+                ()-> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "El viaje no existe"
+                )
+        );
+
+        if (viaje.getConductor() == null
+                || !viaje.getConductor().getId().equals(conductorId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El viaje no pertenece a este conductor."
+            );
+        }
+
+
+        if(viaje.getEstado() == EstadoViaje.LLEGADO){
+            return obtenerViajePorId(viajeId);
+        }
+
+        if (viaje.getEstado() != EstadoViaje.ACEPTADO) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Solo puedes registrar la llegada de un viaje aceptado."
+            );
+        }
+
+        viaje.setEstado(EstadoViaje.LLEGADO);
+        viajeRepository.save(viaje);
+
+        return obtenerViajePorId(viajeId);
+    }
 }

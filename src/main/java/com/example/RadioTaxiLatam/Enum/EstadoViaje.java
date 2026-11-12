@@ -5,6 +5,7 @@ public enum EstadoViaje {
     BUSCANDO_CONDUCTOR,
     ASIGNADO,
     ACEPTADO,
+    LLEGADO,
     EN_CURSO,
     FINALIZADO,
     CANCELADO
