@@ -35,16 +35,19 @@ public class OfertaViajeServicio {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Transactional
     public OfertaViajeDto crearOfertaViaje(Long viajeId, Long conductorId){
-        Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND
-                        , "Viaje no encontrado.")
-        );
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Viaje no encontrado."
+                ));
 
-        Usuario usuario = usuarioRepository.findById(conductorId).orElseThrow(
-                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Conductor no encontrado.")
-        );
+        Usuario usuario = usuarioRepository.buscarPorIdConBloqueo(conductorId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Conductor no encontrado."
+                ));
 
         if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
             throw new ResponseStatusException(
