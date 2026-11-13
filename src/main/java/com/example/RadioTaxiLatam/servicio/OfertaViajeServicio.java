@@ -251,14 +251,14 @@ public class OfertaViajeServicio {
             );
         }
 
-        if(oferta.getViaje().getEstado() !=EstadoViaje.BUSCANDO_CONDUCTOR){
+        if(viaje.getEstado() !=EstadoViaje.BUSCANDO_CONDUCTOR){
             throw new ResponseStatusException(
                     HttpStatus.GONE,
                     "El viaje ya no está buscando conductor."
             );
         }
 
-        if(oferta.getViaje().getConductor() !=null){
+        if(viaje.getConductor() !=null){
             throw new ResponseStatusException(
                     HttpStatus.GONE,
                     "El viaje ya tiene un conductor asignado."
@@ -267,8 +267,9 @@ public class OfertaViajeServicio {
         viaje.setConductor(usuario);
         viaje.setEstado(EstadoViaje.ACEPTADO);
 
+        oferta.setEstado(EstadoOferta.ACEPTADA);
         usuario.setEstado(EstadoConductor.BUSY);
-        oferta.getViaje().setEstado(EstadoViaje.ACEPTADO);
+
         ofertaViajeRepository.save(oferta);
 
 
