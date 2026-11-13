@@ -406,7 +406,7 @@ public class OfertaViajeServicio {
         ));
         Usuario conductor = usuarioRepository.buscarPorIdConBloqueo(conductorId).orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND,
-                "Viaje no encontrado."
+                "Conductor no encontrado."
         ));
 
         if (viaje.getConductor() == null

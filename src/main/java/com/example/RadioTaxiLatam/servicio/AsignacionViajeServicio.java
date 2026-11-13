@@ -152,4 +152,14 @@ public class AsignacionViajeServicio {
             }
         }
     }
+
+    public void devolverYOfrecerSiguiente(Long viajeId, Long conductorId) {
+        Long viajeDevueltoId =
+                ofertaViajeServicio.devolverViajeAceptado(
+                        viajeId,
+                        conductorId
+                );
+
+        ofrecerViaje(viajeDevueltoId);
+    }
 }

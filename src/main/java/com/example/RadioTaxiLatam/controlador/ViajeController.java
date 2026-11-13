@@ -3,6 +3,7 @@ package com.example.RadioTaxiLatam.controlador;
 import com.example.RadioTaxiLatam.Dto.CancelarViajeDTO;
 import com.example.RadioTaxiLatam.Dto.ViajeDTO;
 import com.example.RadioTaxiLatam.entidades.Viaje;
+import com.example.RadioTaxiLatam.servicio.AsignacionViajeServicio;
 import com.example.RadioTaxiLatam.servicio.ViajeServicio;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,9 @@ public class ViajeController {
 
     @Autowired
     private ViajeServicio viajeServicio;
+
+    @Autowired
+    private AsignacionViajeServicio asignacionViajeServicio;
 
     @PostMapping("/crear")
     public ResponseEntity<ViajeDTO> crearViaje(@RequestBody ViajeDTO viajeDTO) {
@@ -84,5 +88,18 @@ public class ViajeController {
         return ResponseEntity.ok(
                 viajeServicio.registrarLlegada(viajeId, conductorId)
         );
+    }
+
+    @PostMapping("/{viajeId}/devolver")
+    public ResponseEntity<Void> devolverViaje(
+            @PathVariable("viajeId") Long viajeId,
+            @RequestParam("conductorId") Long conductorId
+    ) {
+        asignacionViajeServicio.devolverYOfrecerSiguiente(
+                viajeId,
+                conductorId
+        );
+
+        return ResponseEntity.noContent().build();
     }
 }
