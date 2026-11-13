@@ -128,14 +128,12 @@ public class AsignacionViajeServicio {
     public void procesarOfertasCaducadas() {
         List<OfertaViaje> ofertas = ofertaViajeRepository.
                 findByEstadoAndExpiraEnLessThanEqual(EstadoOferta.PENDIENTE, Instant.now());
-        for (OfertaViaje oferta : ofertas) {
-            oferta.setEstado(EstadoOferta.EXPIRADA);
-            ofertaViajeRepository.save(oferta);
-            Viaje viaje = oferta.getViaje();
 
-            if (viaje.getEstado() == EstadoViaje.BUSCANDO_CONDUCTOR &&
-                    viaje.getConductor() == null) {
-                ofrecerViaje(viaje.getId());
+        for (OfertaViaje oferta : ofertas) {
+            Long viajeId = ofertaViajeServicio.expiraOferta(oferta.getId());
+
+            if (viajeId != null) {
+                ofrecerViaje(viajeId);
             }
         }
     }
