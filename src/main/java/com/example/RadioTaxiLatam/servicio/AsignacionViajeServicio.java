@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,6 +26,9 @@ import java.util.List;
 public class AsignacionViajeServicio {
 
     private static final double RADIO_TIERRA_KM = 6371.0;
+
+    private static final Logger log =
+            LoggerFactory.getLogger(AsignacionViajeServicio.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -130,10 +135,20 @@ public class AsignacionViajeServicio {
                 findByEstadoAndExpiraEnLessThanEqual(EstadoOferta.PENDIENTE, Instant.now());
 
         for (OfertaViaje oferta : ofertas) {
-            Long viajeId = ofertaViajeServicio.expiraOferta(oferta.getId());
+            try {
+                Long viajeId =
+                        ofertaViajeServicio.expiraOferta(oferta.getId());
 
-            if (viajeId != null) {
-                ofrecerViaje(viajeId);
+                if (viajeId != null) {
+                    ofrecerViaje(viajeId);
+                }
+
+            } catch (RuntimeException e) {
+                log.error(
+                        "Error al procesar la oferta caducada {}",
+                        oferta.getId(),
+                        e
+                );
             }
         }
     }
