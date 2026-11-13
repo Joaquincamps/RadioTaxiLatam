@@ -25,7 +25,7 @@ import kotlin.random.Random
 /**
  * Backend simulado en memoria que se comporta como el de Joaquín (mismas rutas, DTOs y estados),
  * incluidas sus rarezas: el login pone al conductor AVAILABLE, los errores de login son 500 y
- * finalizar el viaje deja al conductor en BUSY.
+ * cancelar el viaje deja al conductor en BUSY. Para iniciar el viaje hay que registrar antes la llegada.
  * Login: cualquier teléfono con contraseña "1234". Mientras el conductor está AVAILABLE
  * llega una oferta nueva cada ~15 s.
  */
@@ -106,16 +106,25 @@ class MockTaxiApi : TaxiApi {
 
     override suspend fun obtenerTodosLosViajes(): List<Viaje> = call { viajes.toList() }
 
+    override suspend fun registrarLlegada(viajeId: Long, conductorId: Long): ViajeDTO = call {
+        val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(404, "El viaje no existe")
+        when (viaje.estado) {
+            EstadoViaje.LLEGADO -> viaje.aDTO()
+            EstadoViaje.ACEPTADO -> actualizar(viajeId) { it.copy(estado = EstadoViaje.LLEGADO) }.aDTO()
+            else -> throw httpError(409, "Solo puedes registrar la llegada de un viaje aceptado.")
+        }
+    }
+
     override suspend fun iniciarViaje(viajeId: Long, conductorId: Long): ViajeDTO = call {
         val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(500, "El viaje no existe.")
-        if (viaje.estado != EstadoViaje.ACEPTADO) throw httpError(500, "El estado del viaje tiene que ser aceptado")
+        if (viaje.estado != EstadoViaje.LLEGADO) throw httpError(409, "Debes registrar la llegada antes de iniciar el viaje.")
         actualizar(viajeId) { it.copy(estado = EstadoViaje.EN_CURSO) }.aDTO()
     }
 
     override suspend fun finalizarViaje(viajeId: Long, conductorId: Long): ViajeDTO = call {
-        val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(500, "El viaje no existe.")
+        val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(404, "El viaje no existe.")
         if (viaje.estado != EstadoViaje.EN_CURSO) throw httpError(500, "El estado del viaje tiene que ser aceptado")
-        // Igual que su backend: el conductor se queda en BUSY.
+        conductor = conductor.copy(estado = EstadoConductor.AVAILABLE)
         actualizar(viajeId) { it.copy(estado = EstadoViaje.FINALIZADO) }.aDTO()
     }
 
@@ -124,7 +133,8 @@ class MockTaxiApi : TaxiApi {
     }
 
     private fun viajeActivo() = viajes.firstOrNull {
-        it.conductor?.id == conductor.id && (it.estado == EstadoViaje.ACEPTADO || it.estado == EstadoViaje.EN_CURSO)
+        it.conductor?.id == conductor.id &&
+            (it.estado == EstadoViaje.ACEPTADO || it.estado == EstadoViaje.LLEGADO || it.estado == EstadoViaje.EN_CURSO)
     }
 
     private fun actualizar(viajeId: Long, cambio: (Viaje) -> Viaje): Viaje {

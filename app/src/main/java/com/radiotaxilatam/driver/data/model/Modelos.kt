@@ -14,7 +14,7 @@ enum class TipoUsuario { CLIENTE, CONDUCTOR, DESCONOCIDO }
 enum class EstadoConductor { AVAILABLE, BUSY, OFFLINE }
 
 @Serializable
-enum class EstadoViaje { PENDIENTE, BUSCANDO_CONDUCTOR, ASIGNADO, ACEPTADO, EN_CURSO, FINALIZADO, CANCELADO, DESCONOCIDO }
+enum class EstadoViaje { PENDIENTE, BUSCANDO_CONDUCTOR, ASIGNADO, ACEPTADO, LLEGADO, EN_CURSO, FINALIZADO, CANCELADO, DESCONOCIDO }
 
 @Serializable
 data class LoginDTO(val movil: String, val password: String)

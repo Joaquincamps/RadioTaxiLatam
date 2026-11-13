@@ -26,7 +26,6 @@ class HomeViewModel(
 ) : ViewModel() {
     val conductor: StateFlow<ConductorDTO?> = repositorio.conductor
     val viajeActual: StateFlow<Viaje?> = repositorio.viajeActual
-    val viajeLlegadoId: StateFlow<Long?> = repositorio.viajeLlegadoId
     val oferta: StateFlow<OfertaActiva?> = repositorio.oferta
     val ubicacion: StateFlow<Punto?> = repositorio.ubicacion
     val descansoDesde: StateFlow<Long?> = repositorio.descansoDesde

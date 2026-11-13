@@ -28,9 +28,10 @@ fun formatHora(epochMs: Long): String = HORA.format(Instant.ofEpochMilli(epochMs
 /** Fecha ISO-8601 del backend a epoch ms; null si no viene o no se entiende. */
 fun isoAEpochMs(iso: String?): Long? = iso?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
 
-/** Texto para el conductor. [llegado] es el paso "Llegué", que solo existe en la app. */
-fun EstadoViaje.label(llegado: Boolean = false): String = when (this) {
-    EstadoViaje.ACEPTADO -> if (llegado) "En punto de recogida" else "Aceptada"
+/** Texto para el conductor. */
+fun EstadoViaje.label(): String = when (this) {
+    EstadoViaje.ACEPTADO -> "Aceptada"
+    EstadoViaje.LLEGADO -> "En punto de recogida"
     EstadoViaje.EN_CURSO -> "En viaje"
     EstadoViaje.FINALIZADO -> "Completada"
     EstadoViaje.CANCELADO -> "Cancelada"

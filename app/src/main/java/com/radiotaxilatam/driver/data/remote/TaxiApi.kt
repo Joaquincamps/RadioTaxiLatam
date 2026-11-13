@@ -53,6 +53,10 @@ interface TaxiApi {
     @GET("viaje/listar/viajes")
     suspend fun obtenerTodosLosViajes(): List<Viaje>
 
+    /** ACEPTADO -> LLEGADO. Su backend exige este paso antes de iniciar el viaje. */
+    @POST("viaje/{viajeId}/llegada")
+    suspend fun registrarLlegada(@Path("viajeId") viajeId: Long, @Query("conductorId") conductorId: Long): ViajeDTO
+
     @POST("viaje/iniciar/viaje/{viajeId}/conductor/iniciaViaje/{conductorId}")
     suspend fun iniciarViaje(@Path("viajeId") viajeId: Long, @Path("conductorId") conductorId: Long): ViajeDTO
 

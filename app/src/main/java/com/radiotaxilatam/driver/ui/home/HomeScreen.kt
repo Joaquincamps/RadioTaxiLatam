@@ -96,7 +96,6 @@ fun HomeScreen(
     val context = LocalContext.current
     val conductor by viewModel.conductor.collectAsStateWithLifecycle()
     val viaje by viewModel.viajeActual.collectAsStateWithLifecycle()
-    val viajeLlegadoId by viewModel.viajeLlegadoId.collectAsStateWithLifecycle()
     val oferta by viewModel.oferta.collectAsStateWithLifecycle()
     val working by viewModel.working.collectAsStateWithLifecycle()
     val ubicacion by viewModel.ubicacion.collectAsStateWithLifecycle()
@@ -189,7 +188,6 @@ fun HomeScreen(
                 conductor == null -> Centered { CircularProgressIndicator() }
                 actual != null -> CurrentRideCard(
                     viaje = actual,
-                    llegado = viajeLlegadoId == actual.id,
                     ruta = rutaViaje?.takeIf { it.viajeId == actual.id },
                     taxi = ubicacion,
                     working = working,
@@ -336,7 +334,6 @@ private fun OfflineHint() {
 @Composable
 private fun CurrentRideCard(
     viaje: Viaje,
-    llegado: Boolean,
     ruta: RutaDeViaje?,
     taxi: Punto?,
     working: Boolean,
@@ -350,7 +347,7 @@ private fun CurrentRideCard(
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                "Carrera #${viaje.id} · ${viaje.estado.label(llegado)}",
+                "Carrera #${viaje.id} · ${viaje.estado.label()}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -381,10 +378,10 @@ private fun CurrentRideCard(
                     }
                 }
             }
-            val actionLabel = when {
-                viaje.estado == EstadoViaje.ACEPTADO && !llegado -> "Llegué al punto de recogida"
-                viaje.estado == EstadoViaje.ACEPTADO -> "Iniciar viaje"
-                viaje.estado == EstadoViaje.EN_CURSO -> "Finalizar viaje"
+            val actionLabel = when (viaje.estado) {
+                EstadoViaje.ACEPTADO -> "Llegué al punto de recogida"
+                EstadoViaje.LLEGADO -> "Iniciar viaje"
+                EstadoViaje.EN_CURSO -> "Finalizar viaje"
                 else -> null
             }
             actionLabel?.let {
@@ -395,7 +392,7 @@ private fun CurrentRideCard(
                 ) { Text(it, style = MaterialTheme.typography.titleMedium) }
             }
             // Sin taxímetro el precio se acuerda al recoger: si el cliente no lo acepta, se cancela antes de iniciar.
-            if (viaje.estado == EstadoViaje.ACEPTADO) {
+            if (viaje.estado == EstadoViaje.ACEPTADO || viaje.estado == EstadoViaje.LLEGADO) {
                 TextButton(onClick = onCancel, enabled = !working, modifier = Modifier.fillMaxWidth()) {
                     Text("Cancelar viaje", color = MaterialTheme.colorScheme.error)
                 }

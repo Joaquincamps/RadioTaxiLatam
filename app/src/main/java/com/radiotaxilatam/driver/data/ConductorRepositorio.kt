@@ -40,10 +40,10 @@ data class OfertaActiva(val oferta: OfertaViajeDto, val limiteElapsedMs: Long, v
  * - Sesión: no hay token; se guarda el id del conductor.
  * - Mis datos: se busca el conductor en GET /usuarios/listar.
  * - Viaje actual e historial: se filtran los viajes de este conductor en GET /viaje/listar/viajes.
- * - "Llegué": paso solo del móvil entre ACEPTADO e iniciar viaje.
- * - Al finalizar (o si cancelan el viaje) su backend deja al conductor en BUSY: la app lo vuelve a poner AVAILABLE.
- * - Oferta que caduca sin respuesta: su backend no la pasa al siguiente conductor, así que la app la
- *   rechaza justo antes de que caduque (MARGEN_RECHAZO_S) para que él sí lo haga.
+ * - Si el conductor cancela, su backend lo deja en BUSY: la app lo vuelve a poner AVAILABLE
+ *   (también tras finalizar, aunque ahí su backend ya lo hace; no hace daño).
+ * - Oferta que caduca sin respuesta: su backend ya la pasa al siguiente conductor, pero la app la sigue
+ *   rechazando justo antes de que caduque (MARGEN_RECHAZO_S) para no esperar a su tarea programada.
  */
 class ConductorRepositorio(
     private val api: TaxiApi,
@@ -55,10 +55,6 @@ class ConductorRepositorio(
 
     private val _viajeActual = MutableStateFlow<Viaje?>(null)
     val viajeActual: StateFlow<Viaje?> = _viajeActual.asStateFlow()
-
-    /** Id del viaje en el que el conductor ya pulsó "Llegué" (no existe en el backend). */
-    private val _viajeLlegadoId = MutableStateFlow<Long?>(null)
-    val viajeLlegadoId: StateFlow<Long?> = _viajeLlegadoId.asStateFlow()
 
     private val _oferta = MutableStateFlow<OfertaActiva?>(null)
     val oferta: StateFlow<OfertaActiva?> = _oferta.asStateFlow()
@@ -107,7 +103,6 @@ class ConductorRepositorio(
         session.clear()
         _conductor.value = null
         _viajeActual.value = null
-        _viajeLlegadoId.value = null
         _oferta.value = null
         _ubicacion.value = null
         _descansoDesde.value = null
@@ -140,7 +135,6 @@ class ConductorRepositorio(
             // El viaje terminó o lo cancelaron, pero su backend deja al conductor en BUSY.
             liberarConductor()
         }
-        if (viaje?.id != _viajeActual.value?.id) _viajeLlegadoId.value = null
         _viajeActual.value = viaje
         if (viaje != null) {
             _oferta.value = null
@@ -167,7 +161,6 @@ class ConductorRepositorio(
             val dto = api.aceptarOferta(ofertaId, conductorId)
             val viaje = api.obtenerTodosLosViajes().firstOrNull { it.id == dto.id } ?: dto.aViaje()
             _viajeActual.value = viaje
-            _viajeLlegadoId.value = null
             _conductor.value = _conductor.value?.copy(estado = EstadoConductor.BUSY)
             registro.actualizar(viaje.id) { it.copy(aceptadoEn = System.currentTimeMillis()) }
             viaje
@@ -193,20 +186,20 @@ class ConductorRepositorio(
         bloquear = true,
         mensajes = mapOf(500 to "No se pudo actualizar la carrera. Puede que la hayan cancelado."),
     ) {
-        when {
-            viaje.estado == EstadoViaje.ACEPTADO && _viajeLlegadoId.value != viaje.id -> {
-                _viajeLlegadoId.value = viaje.id
+        when (viaje.estado) {
+            EstadoViaje.ACEPTADO -> {
+                val dto = api.registrarLlegada(viaje.id, conductorId)
+                _viajeActual.value = viaje.copy(estado = dto.estado)
             }
-            viaje.estado == EstadoViaje.ACEPTADO -> {
+            EstadoViaje.LLEGADO -> {
                 val dto = api.iniciarViaje(viaje.id, conductorId)
                 _viajeActual.value = viaje.copy(estado = dto.estado)
                 registro.actualizar(viaje.id) { it.copy(iniciadoEn = System.currentTimeMillis()) }
             }
-            viaje.estado == EstadoViaje.EN_CURSO -> {
+            EstadoViaje.EN_CURSO -> {
                 api.finalizarViaje(viaje.id, conductorId)
                 registro.actualizar(viaje.id) { it.copy(terminadoEn = System.currentTimeMillis()) }
                 _viajeActual.value = null
-                _viajeLlegadoId.value = null
                 liberarConductor()
             }
             else -> throw AppException(null, "La carrera no se puede avanzar")
@@ -221,11 +214,12 @@ class ConductorRepositorio(
         bloquear = true,
         mensajes = mapOf(500 to "No se pudo cancelar la carrera. Puede que ya esté cancelada."),
     ) {
-        if (viaje.estado != EstadoViaje.ACEPTADO) throw AppException(null, "Solo se puede cancelar antes de iniciar el viaje")
+        if (viaje.estado != EstadoViaje.ACEPTADO && viaje.estado != EstadoViaje.LLEGADO) {
+            throw AppException(null, "Solo se puede cancelar antes de iniciar el viaje")
+        }
         api.cancelarViaje(viaje.id, conductorId)
         registro.actualizar(viaje.id) { it.copy(terminadoEn = System.currentTimeMillis()) }
         _viajeActual.value = null
-        _viajeLlegadoId.value = null
         liberarConductor()
     }
 
@@ -269,7 +263,7 @@ class ConductorRepositorio(
     private fun buscarViajeActivo(viajes: List<Viaje>): Viaje? {
         val id = conductorId
         return viajes.firstOrNull {
-            it.conductor?.id == id && (it.estado == EstadoViaje.ACEPTADO || it.estado == EstadoViaje.EN_CURSO)
+            it.conductor?.id == id && it.estado in ESTADOS_ACTIVOS
         }
     }
 
@@ -321,6 +315,9 @@ class ConductorRepositorio(
          * El tiempo total lo fija el backend (hoy 20 s en OfertaViajeServicio).
          */
         const val MARGEN_RECHAZO_S = 1
+
+        /** Estados en los que el viaje es la carrera actual del conductor. */
+        val ESTADOS_ACTIVOS = setOf(EstadoViaje.ACEPTADO, EstadoViaje.LLEGADO, EstadoViaje.EN_CURSO)
     }
 }
 
