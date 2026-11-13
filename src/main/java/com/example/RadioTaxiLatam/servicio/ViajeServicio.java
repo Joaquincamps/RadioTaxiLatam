@@ -365,7 +365,7 @@ public class ViajeServicio {
                     "EL ID de Vapi no puede ser vacío o nulo."
             );
         }
-        Viaje viajeBuscar = viajeRepository.findById(viajeId)
+        Viaje viajeBuscar = viajeRepository.buscarPorIdConBloqueo(viajeId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "El viaje no existe."
@@ -378,6 +378,18 @@ public class ViajeServicio {
         if(viajeBuscar.getEstado() == EstadoViaje.CANCELADO){
             return obtenerViajePorId(viajeId);
         }
+
+        Usuario conductor = null;
+
+        if (viajeBuscar.getConductor() != null) {
+            conductor = usuarioRepository.buscarPorIdConBloqueo(
+                    viajeBuscar.getConductor().getId()
+            ).orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Conductor no encontrado."
+            ));
+        }
+
 
         EstadoViaje estado = viajeBuscar.getEstado();
 
@@ -405,7 +417,6 @@ public class ViajeServicio {
 
         ofertaViajeRepository.saveAll(ofertasPendientes);
 
-        Usuario conductor = viajeBuscar.getConductor();
 
         if (conductor != null) {
             conductor.setEstado(EstadoConductor.AVAILABLE);
