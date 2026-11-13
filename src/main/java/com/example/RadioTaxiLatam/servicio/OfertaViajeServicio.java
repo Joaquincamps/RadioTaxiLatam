@@ -397,4 +397,72 @@ public class OfertaViajeServicio {
 
         return null;
     }
+
+    @Transactional
+    public Long devolverViajeAceptado(Long viajeId, Long conductorId){
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Viaje no encontrado."
+        ));
+        Usuario conductor = usuarioRepository.buscarPorIdConBloqueo(conductorId).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Viaje no encontrado."
+        ));
+
+        if (viaje.getConductor() == null
+                || !viaje.getConductor().getId().equals(conductorId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El viaje no pertenece a este conductor."
+            );
+        }
+
+        if (viaje.getEstado() != EstadoViaje.ACEPTADO
+                && viaje.getEstado() != EstadoViaje.LLEGADO) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Solo puedes devolver un viaje aceptado o en recogida."
+            );
+        }
+
+        List<OfertaViaje> ofertasAceptadas =
+                ofertaViajeRepository.findByViaje_IdAndConductor_IdAndEstado(
+                        viajeId,
+                        conductorId,
+                        EstadoOferta.ACEPTADA
+                );
+        if (ofertasAceptadas.size() != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "No se ha encontrado una única oferta aceptada para este viaje."
+            );
+        }
+
+        OfertaViaje oferta = ofertaViajeRepository
+                .buscarPorIdConBloqueo(ofertasAceptadas.getFirst().getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Oferta no encontrada."
+                ));
+
+        if (oferta.getEstado() != EstadoOferta.ACEPTADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "La oferta ya no está aceptada."
+            );
+        }
+
+        oferta.setEstado(EstadoOferta.DEVUELTA);
+
+        viaje.setConductor(null);
+        viaje.setEstado(EstadoViaje.BUSCANDO_CONDUCTOR);
+
+        conductor.setEstado(EstadoConductor.AVAILABLE);
+
+        ofertaViajeRepository.save(oferta);
+        viajeRepository.save(viaje);
+        usuarioRepository.save(conductor);
+
+        return viaje.getId();
+    }
 }

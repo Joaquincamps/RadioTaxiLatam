@@ -35,4 +35,6 @@ public class ViajeDTO {
     private String llamadaVapiId;
 
     private Instant finalizadoEn;
+
+    private Instant creadoEn;
 }

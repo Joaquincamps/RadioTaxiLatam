@@ -94,6 +94,7 @@ public class ViajeServicio {
                 .telefonoPasajero(viajeDTO.getTelefonoPasajero())
                 .nombrePasajero(viajeDTO.getNombrePasajero())
                 .llamadaVapiId(viajeDTO.getLlamadaVapiId())
+                .creadoEn(Instant.now())
                 .build();
 
         Viaje viajeGuardado;
@@ -124,6 +125,7 @@ public class ViajeServicio {
                 .telefonoPasajero(viajeGuardado.getTelefonoPasajero())
                 .nombrePasajero(viajeGuardado.getNombrePasajero())
                 .llamadaVapiId(viajeGuardado.getLlamadaVapiId())
+                .creadoEn(viajeGuardado.getCreadoEn())
                 .build();
     }
 

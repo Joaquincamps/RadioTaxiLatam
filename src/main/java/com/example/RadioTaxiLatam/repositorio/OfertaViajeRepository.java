@@ -47,4 +47,10 @@ public interface OfertaViajeRepository extends JpaRepository<OfertaViaje, Long> 
     Optional<OfertaViaje> buscarPorIdConBloqueo(
             @Param("id") Long id
     );
+
+    List<OfertaViaje> findByViaje_IdAndConductor_IdAndEstado(
+            Long viajeId,
+            Long conductorId,
+            EstadoOferta estado
+    );
 }

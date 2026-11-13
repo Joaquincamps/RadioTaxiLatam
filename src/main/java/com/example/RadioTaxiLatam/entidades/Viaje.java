@@ -47,5 +47,7 @@ public class Viaje {
 
     private Instant finalizadoEn;
 
+    private Instant creadoEn;
+
 
 }
