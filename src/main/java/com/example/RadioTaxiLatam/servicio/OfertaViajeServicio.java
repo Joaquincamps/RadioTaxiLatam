@@ -295,15 +295,33 @@ public class OfertaViajeServicio {
 
     }
 
+    @Transactional
     public Long rechazarOferta(Long ofertaId, Long conductorId){
-        OfertaViaje ofertaViaje = ofertaViajeRepository.findById(ofertaId).orElseThrow(
-                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND ,
-                        "La oferta de viaje no fue encontrada")
-        );
-        Usuario usuario = usuarioRepository.findById(conductorId).orElseThrow(
-                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Conductor no encontrado.")
-        );
+        Long viajeId = ofertaViajeRepository
+                .buscarViajeIdPorOfertaId(ofertaId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Oferta de viaje no encontrada."
+                ));
+
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Viaje no encontrado."
+                ));
+
+        Usuario usuario = usuarioRepository.buscarPorIdConBloqueo(conductorId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Conductor no encontrado."
+                ));
+
+        OfertaViaje ofertaViaje = ofertaViajeRepository
+                .buscarPorIdConBloqueo(ofertaId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Oferta de viaje no encontrada."
+                ));
 
         if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
             throw new ResponseStatusException(
@@ -336,6 +354,6 @@ public class OfertaViajeServicio {
         ofertaViaje.setEstado(EstadoOferta.RECHAZADA);
         ofertaViajeRepository.save(ofertaViaje);
 
-        return ofertaViaje.getViaje().getId();
+        return viaje.getId();
     }
 }
