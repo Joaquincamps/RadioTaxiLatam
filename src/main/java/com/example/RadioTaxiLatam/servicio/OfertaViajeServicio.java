@@ -188,15 +188,33 @@ public class OfertaViajeServicio {
 
     @Transactional
     public ViajeDTO aceptarOferta(Long ofertaId, Long conductorId){
-        OfertaViaje oferta = ofertaViajeRepository.findById(ofertaId).orElseThrow(
-                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND
-                        , "Oferta de viaje no encontrada.")
-        );
 
-        Usuario usuario = usuarioRepository.findById(conductorId).orElseThrow(
-                ()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Conductor no encontrado.")
-        );
+        Long viajeId = ofertaViajeRepository
+                .buscarViajeIdPorOfertaId(ofertaId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Oferta de viaje no encontrada."
+                ));
+
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Viaje no encontrado."
+                ));
+
+        Usuario usuario = usuarioRepository
+                .buscarPorIdConBloqueo(conductorId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Conductor no encontrado."
+                ));
+
+        OfertaViaje oferta = ofertaViajeRepository
+                .buscarPorIdConBloqueo(ofertaId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Oferta de viaje no encontrada."
+                ));
 
         if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
             throw new ResponseStatusException(
@@ -246,13 +264,13 @@ public class OfertaViajeServicio {
                     "El viaje ya tiene un conductor asignado."
             );
         }
-        oferta.getViaje().setConductor(usuario);
-        oferta.setEstado(EstadoOferta.ACEPTADA);
+        viaje.setConductor(usuario);
+        viaje.setEstado(EstadoViaje.ACEPTADO);
+
         usuario.setEstado(EstadoConductor.BUSY);
         oferta.getViaje().setEstado(EstadoViaje.ACEPTADO);
         ofertaViajeRepository.save(oferta);
 
-        Viaje viaje = oferta.getViaje();
 
         return ViajeDTO.builder()
                 .id(viaje.getId())
