@@ -235,8 +235,9 @@ public class ViajeServicio {
                 .build();
     }
 
+    @Transactional
     public ViajeDTO iniciarViaje(Long viajeId, Long conductorId) {
-        Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(() -> new RuntimeException("El viaje no existe."));
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId).orElseThrow(() -> new RuntimeException("El viaje no existe."));
         Usuario conductor = usuarioRepository.findById(conductorId).orElseThrow(() -> new RuntimeException("El conductor no existe."));
 
         if (conductor.getTipo() != TipoUsuario.CONDUCTOR) {
@@ -431,7 +432,7 @@ public class ViajeServicio {
     @Transactional
     public ViajeDTO registrarLlegada(Long viajeId, Long conductorId){
 
-        Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId).orElseThrow(
                 ()-> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "El viaje no existe"
                 )
