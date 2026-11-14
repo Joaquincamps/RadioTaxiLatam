@@ -65,4 +65,11 @@ interface TaxiApi {
 
     @POST("viaje/cancelar/viaje/{viajeId}/conductor/cancelaViaje/{conductorId}")
     suspend fun cancelarViaje(@Path("viajeId") viajeId: Long, @Path("conductorId") conductorId: Long): ViajeDTO
+
+    /**
+     * Devuelve un viaje ACEPTADO o LLEGADO: vuelve a BUSCANDO_CONDUCTOR y su backend se lo ofrece a otro
+     * conductor (nunca a este otra vez). Deja al conductor AVAILABLE. Responde 204 sin cuerpo.
+     */
+    @POST("viaje/{viajeId}/devolver")
+    suspend fun devolverViaje(@Path("viajeId") viajeId: Long, @Query("conductorId") conductorId: Long): Response<Unit>
 }

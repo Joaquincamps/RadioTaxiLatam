@@ -41,7 +41,7 @@ data class OfertaActiva(val oferta: OfertaViajeDto, val limiteElapsedMs: Long, v
  * - Mis datos: se busca el conductor en GET /usuarios/listar.
  * - Viaje actual e historial: se filtran los viajes de este conductor en GET /viaje/listar/viajes.
  * - Si el conductor cancela, su backend lo deja en BUSY: la app lo vuelve a poner AVAILABLE
- *   (también tras finalizar, aunque ahí su backend ya lo hace; no hace daño).
+ *   (también tras finalizar, aunque ahí su backend ya lo hace; no hace daño). Al devolver no hace falta.
  * - Oferta que caduca sin respuesta: su backend ya la pasa al siguiente conductor, pero la app la sigue
  *   rechazando justo antes de que caduque (MARGEN_RECHAZO_S) para no esperar a su tarea programada.
  */
@@ -212,7 +212,11 @@ class ConductorRepositorio(
      */
     suspend fun cancelarViaje(viaje: Viaje): Result<Unit> = safeCall(
         bloquear = true,
-        mensajes = mapOf(500 to "No se pudo cancelar la carrera. Puede que ya esté cancelada."),
+        mensajes = mapOf(
+            403 to "Esta carrera ya no está asignada a ti",
+            404 to "La carrera ya no existe",
+            500 to "No se pudo cancelar la carrera. Puede que ya esté cancelada.",
+        ),
     ) {
         if (viaje.estado != EstadoViaje.ACEPTADO && viaje.estado != EstadoViaje.LLEGADO) {
             throw AppException(null, "Solo se puede cancelar antes de iniciar el viaje")
@@ -221,6 +225,29 @@ class ConductorRepositorio(
         registro.actualizar(viaje.id) { it.copy(terminadoEn = System.currentTimeMillis()) }
         _viajeActual.value = null
         liberarConductor()
+    }
+
+    /**
+     * Devuelve la carrera antes de iniciarla (p. ej. una avería o no llega a tiempo): a diferencia de
+     * cancelar, el pasajero no se queda sin taxi, porque su backend se la ofrece al siguiente conductor.
+     * Su backend ya deja al conductor AVAILABLE. No sale en el historial: el viaje deja de ser suyo.
+     */
+    suspend fun devolverViaje(viaje: Viaje): Result<Unit> = safeCall(
+        bloquear = true,
+        mensajes = mapOf(
+            403 to "Esta carrera ya no está asignada a ti",
+            404 to "La carrera ya no existe",
+            409 to "Solo se puede devolver una carrera antes de iniciarla",
+        ),
+    ) {
+        if (viaje.estado != EstadoViaje.ACEPTADO && viaje.estado != EstadoViaje.LLEGADO) {
+            throw AppException(null, "Solo se puede devolver una carrera antes de iniciarla")
+        }
+        val response = api.devolverViaje(viaje.id, conductorId)
+        if (!response.isSuccessful) throw HttpException(response)
+        registro.borrar(viaje.id)
+        _viajeActual.value = null
+        _conductor.value = _conductor.value?.copy(estado = EstadoConductor.AVAILABLE)
     }
 
     /** Guarda la distancia de la ruta calculada para mostrarla en el historial. */

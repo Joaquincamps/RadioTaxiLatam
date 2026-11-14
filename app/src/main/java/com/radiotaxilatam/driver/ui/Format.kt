@@ -25,9 +25,6 @@ fun formatFecha(epochMs: Long): String = FECHA.format(Instant.ofEpochMilli(epoch
 
 fun formatHora(epochMs: Long): String = HORA.format(Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault()))
 
-/** Fecha ISO-8601 del backend a epoch ms; null si no viene o no se entiende. */
-fun isoAEpochMs(iso: String?): Long? = iso?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
-
 /** Texto para el conductor. */
 fun EstadoViaje.label(): String = when (this) {
     EstadoViaje.ACEPTADO -> "Aceptada"

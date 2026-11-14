@@ -42,7 +42,6 @@ import com.radiotaxilatam.driver.ui.formatDuracion
 import com.radiotaxilatam.driver.ui.formatFecha
 import com.radiotaxilatam.driver.ui.formatHora
 import com.radiotaxilatam.driver.ui.home.RideAddresses
-import com.radiotaxilatam.driver.ui.isoAEpochMs
 import com.radiotaxilatam.driver.ui.label
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -86,9 +85,11 @@ class HistoryViewModel(private val repositorio: ConductorRepositorio) : ViewMode
 
 private fun Viaje.conRegistro(registro: RegistroViaje?) = ViajeHistorial(
     viaje = this,
-    // Un viaje cancelado nunca se inició: su "inicio" es cuando se aceptó.
-    inicio = isoAEpochMs(fechaInicio) ?: registro?.iniciadoEn ?: registro?.aceptadoEn,
-    fin = isoAEpochMs(fechaFin) ?: registro?.terminadoEn,
+    // Su backend no guarda cuándo se inició: se usa la hora de este móvil. Un viaje cancelado nunca se
+    // inició, así que su "inicio" es cuando se aceptó. Si el viaje no se hizo en este móvil, cuándo se pidió.
+    inicio = registro?.iniciadoEn ?: registro?.aceptadoEn ?: creadoEn,
+    // Para el fin manda la hora del servidor (finalizadoEn); si se canceló no la hay y se usa la del móvil.
+    fin = finalizadoEn ?: registro?.terminadoEn,
     distanciaMetros = registro?.distanciaMetros,
 )
 

@@ -26,8 +26,9 @@ private val Context.registroStore by preferencesDataStore(name = "registro_viaje
 private val REGISTROS_KEY = stringPreferencesKey("registros")
 
 /**
- * El backend de Joaquín no guarda fechas en los viajes, así que el móvil anota cuándo el conductor
- * aceptó, inició y terminó cada uno. Solo cubre los viajes hechos desde este móvil.
+ * El backend de Joaquín solo guarda cuándo se creó y se finalizó cada viaje (creadoEn, finalizadoEn),
+ * así que el móvil anota cuándo el conductor aceptó, inició y terminó (o canceló) cada uno.
+ * Solo cubre los viajes hechos desde este móvil.
  */
 class RegistroViajes(private val context: Context) {
     private val _registros = MutableStateFlow<Map<Long, RegistroViaje>>(emptyMap())
@@ -41,6 +42,14 @@ class RegistroViajes(private val context: Context) {
 
     suspend fun actualizar(viajeId: Long, cambio: (RegistroViaje) -> RegistroViaje) = mutex.withLock {
         val nuevos = _registros.value + (viajeId to cambio(_registros.value[viajeId] ?: RegistroViaje()))
+        _registros.value = nuevos
+        context.registroStore.edit { it[REGISTROS_KEY] = AppJson.encodeToString(nuevos) }
+    }
+
+    /** Olvida un viaje que dejó de ser de este conductor (lo devolvió). */
+    suspend fun borrar(viajeId: Long) = mutex.withLock {
+        if (viajeId !in _registros.value) return@withLock
+        val nuevos = _registros.value - viajeId
         _registros.value = nuevos
         context.registroStore.edit { it[REGISTROS_KEY] = AppJson.encodeToString(nuevos) }
     }

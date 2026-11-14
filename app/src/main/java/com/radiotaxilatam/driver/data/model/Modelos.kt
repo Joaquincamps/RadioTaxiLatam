@@ -1,6 +1,19 @@
 package com.radiotaxilatam.driver.data.model
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.nullable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
+import java.time.Instant
 
 /*
  * Objetos JSON del backend de Joaquín (repo Joaquincamps/RadioTaxiLatam, rama desarrollo),
@@ -85,10 +98,34 @@ data class Viaje(
     val latitudDestino: Double? = null,
     val longitudDestino: Double? = null,
     val estado: EstadoViaje = EstadoViaje.DESCONOCIDO,
-    // Aún no existen en su backend (ISO-8601). Mientras tanto, el móvil registra sus propias horas (RegistroViajes).
-    val fechaInicio: String? = null,
-    val fechaFin: String? = null,
+    /** Cuándo se pidió el viaje (epoch ms). Solo lo tienen los viajes creados desde el commit c4b44ac. */
+    @Serializable(with = InstanteSerializer::class)
+    val creadoEn: Long? = null,
+    /** Cuándo se finalizó (epoch ms); null si se canceló. Su backend no guarda cuándo se aceptó ni se inició. */
+    @Serializable(with = InstanteSerializer::class)
+    val finalizadoEn: Long? = null,
 )
+
+/**
+ * Los `Instant` de su backend llegan como texto ISO-8601 ("2026-11-13T12:21:32.123Z"). Por si su Jackson
+ * los mandara como número (segundos con decimales), también se aceptan. Si no se entiende, queda null
+ * en vez de romper toda la lista de viajes.
+ */
+object InstanteSerializer : KSerializer<Long?> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instante", PrimitiveKind.STRING).nullable
+
+    override fun deserialize(decoder: Decoder): Long? {
+        val valor = (decoder as? JsonDecoder)?.decodeJsonElement() as? JsonPrimitive ?: return null
+        if (valor is JsonNull) return null
+        if (valor.isString) return runCatching { Instant.parse(valor.content).toEpochMilli() }.getOrNull()
+        return valor.doubleOrNull?.let { (it * 1000).toLong() }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    override fun serialize(encoder: Encoder, value: Long?) {
+        if (value == null) encoder.encodeNull() else encoder.encodeString(Instant.ofEpochMilli(value).toString())
+    }
+}
 
 fun Usuario.aConductorDTO() = ConductorDTO(id, nombre, telefono, matricula, modeloVehiculo, estado)
 

@@ -105,6 +105,7 @@ fun HomeScreen(
     val snackbar = remember { SnackbarHostState() }
     var showPermissionHelp by remember { mutableStateOf(false) }
     var viajeACancelar by remember { mutableStateOf<Viaje?>(null) }
+    var viajeADevolver by remember { mutableStateOf<Viaje?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -193,6 +194,7 @@ fun HomeScreen(
                     working = working,
                     onAdvance = { viewModel.avanzar(actual) },
                     onCancel = { viajeACancelar = actual },
+                    onReturn = { viajeADevolver = actual },
                     onNavigate = { openNavigation(context, actual) },
                     onCall = { actual.cliente?.telefono?.let { dial(context, it) } },
                 )
@@ -229,6 +231,26 @@ fun HomeScreen(
                 }) { Text("Sí, cancelar", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = { TextButton(onClick = { viajeACancelar = null }) { Text("No") } },
+        )
+    }
+
+    viajeADevolver?.let { v ->
+        AlertDialog(
+            onDismissRequest = { viajeADevolver = null },
+            title = { Text("¿Devolver la carrera?") },
+            text = {
+                Text(
+                    "Úsalo si no puedes hacerla tú (avería, tráfico…). La central se la ofrecerá a otro taxista " +
+                        "y el pasajero no se queda sin taxi. No te la volverán a ofrecer y volverás a estar disponible."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viajeADevolver = null
+                    viewModel.devolver(v)
+                }) { Text("Sí, devolver") }
+            },
+            dismissButton = { TextButton(onClick = { viajeADevolver = null }) { Text("No") } },
         )
     }
 
@@ -339,6 +361,7 @@ private fun CurrentRideCard(
     working: Boolean,
     onAdvance: () -> Unit,
     onCancel: () -> Unit,
+    onReturn: () -> Unit,
     onNavigate: () -> Unit,
     onCall: () -> Unit,
 ) {
@@ -391,10 +414,16 @@ private fun CurrentRideCard(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                 ) { Text(it, style = MaterialTheme.typography.titleMedium) }
             }
-            // Sin taxímetro el precio se acuerda al recoger: si el cliente no lo acepta, se cancela antes de iniciar.
+            // Antes de iniciar: devolverla (otro taxista la hace) o cancelarla (p. ej. el cliente no acepta el
+            // precio, que se acuerda al recoger porque no hay taxímetro).
             if (viaje.estado == EstadoViaje.ACEPTADO || viaje.estado == EstadoViaje.LLEGADO) {
-                TextButton(onClick = onCancel, enabled = !working, modifier = Modifier.fillMaxWidth()) {
-                    Text("Cancelar viaje", color = MaterialTheme.colorScheme.error)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onReturn, enabled = !working, modifier = Modifier.weight(1f)) {
+                        Text("Devolver carrera")
+                    }
+                    TextButton(onClick = onCancel, enabled = !working, modifier = Modifier.weight(1f)) {
+                        Text("Cancelar viaje", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }

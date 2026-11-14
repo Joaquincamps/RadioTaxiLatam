@@ -25,7 +25,8 @@ import kotlin.random.Random
 /**
  * Backend simulado en memoria que se comporta como el de Joaquín (mismas rutas, DTOs y estados),
  * incluidas sus rarezas: el login pone al conductor AVAILABLE, los errores de login son 500 y
- * cancelar el viaje deja al conductor en BUSY. Para iniciar el viaje hay que registrar antes la llegada.
+ * cancelar el viaje deja al conductor en BUSY (devolverlo, en cambio, lo deja AVAILABLE).
+ * Para iniciar el viaje hay que registrar antes la llegada.
  * Login: cualquier teléfono con contraseña "1234". Mientras el conductor está AVAILABLE
  * llega una oferta nueva cada ~15 s.
  */
@@ -38,10 +39,16 @@ class MockTaxiApi : TaxiApi {
     private var siguienteId = 1000L
 
     init {
+        // Historial de ejemplo: un viaje cada ~3 h hacia atrás, de unos 25 min.
+        val ahora = System.currentTimeMillis()
         repeat(8) { i ->
+            val creado = ahora - (8 - i) * 3 * 3_600_000L
+            val cancelado = i == 3
             viajes += viajeAleatorio(siguienteId++).copy(
                 conductor = conductor,
-                estado = if (i == 3) EstadoViaje.CANCELADO else EstadoViaje.FINALIZADO,
+                estado = if (cancelado) EstadoViaje.CANCELADO else EstadoViaje.FINALIZADO,
+                creadoEn = creado,
+                finalizadoEn = if (cancelado) null else creado + 25 * 60_000L,
             )
         }
     }
@@ -125,11 +132,26 @@ class MockTaxiApi : TaxiApi {
         val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(404, "El viaje no existe.")
         if (viaje.estado != EstadoViaje.EN_CURSO) throw httpError(500, "El estado del viaje tiene que ser aceptado")
         conductor = conductor.copy(estado = EstadoConductor.AVAILABLE)
-        actualizar(viajeId) { it.copy(estado = EstadoViaje.FINALIZADO) }.aDTO()
+        actualizar(viajeId) { it.copy(estado = EstadoViaje.FINALIZADO, finalizadoEn = System.currentTimeMillis()) }.aDTO()
     }
 
     override suspend fun cancelarViaje(viajeId: Long, conductorId: Long): ViajeDTO = call {
+        val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(404, "El viaje no existe.")
+        if (viaje.conductor?.id != conductorId) throw httpError(403, "El viaje no pertenece a este conductor.")
         actualizar(viajeId) { it.copy(estado = EstadoViaje.CANCELADO) }.aDTO()
+    }
+
+    override suspend fun devolverViaje(viajeId: Long, conductorId: Long): Response<Unit> = call {
+        val viaje = viajes.firstOrNull { it.id == viajeId } ?: throw httpError(404, "Viaje no encontrado.")
+        if (viaje.conductor?.id != conductorId) throw httpError(403, "El viaje no pertenece a este conductor.")
+        if (viaje.estado != EstadoViaje.ACEPTADO && viaje.estado != EstadoViaje.LLEGADO) {
+            throw httpError(409, "Solo puedes devolver un viaje aceptado o en recogida.")
+        }
+        // Vuelve a buscar conductor y se lo lleva "otro conductor": a este no se le vuelve a ofrecer.
+        viajes.removeAll { it.id == viajeId }
+        conductor = conductor.copy(estado = EstadoConductor.AVAILABLE)
+        siguienteOfertaEn = Instant.now().plusSeconds(15)
+        Response.success<Unit>(204, Unit)
     }
 
     private fun viajeActivo() = viajes.firstOrNull {
@@ -168,6 +190,7 @@ class MockTaxiApi : TaxiApi {
             latitudDestino = dLat,
             longitudDestino = dLng,
             estado = EstadoViaje.BUSCANDO_CONDUCTOR,
+            creadoEn = System.currentTimeMillis(),
         )
     }
 

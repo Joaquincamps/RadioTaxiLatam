@@ -91,6 +91,10 @@ class HomeViewModel(
         repositorio.cancelarViaje(viaje).onSuccess { _messages.send("Carrera cancelada") }
     }
 
+    fun devolver(viaje: Viaje) = launchAction {
+        repositorio.devolverViaje(viaje).onSuccess { _messages.send("Carrera devuelta: la central buscará otro taxi") }
+    }
+
     fun logout(onDone: () -> Unit) {
         viewModelScope.launch {
             repositorio.logout()
