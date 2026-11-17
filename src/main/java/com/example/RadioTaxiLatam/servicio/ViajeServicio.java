@@ -142,6 +142,7 @@ public class ViajeServicio {
                 .telefonoPasajero(viaje.getTelefonoPasajero())
                 .nombrePasajero(viaje.getNombrePasajero())
                 .llamadaVapiId(viaje.getLlamadaVapiId())
+                .creadoEn(viaje.getCreadoEn())
                 .finalizadoEn(viaje.getFinalizadoEn())
                 .build();
     }
@@ -365,29 +366,30 @@ public class ViajeServicio {
                 && viaje.getEstado() != EstadoViaje.ACEPTADO
                 && viaje.getEstado() != EstadoViaje.LLEGADO
                 && viaje.getEstado() != EstadoViaje.EN_CURSO) {
-            viaje.setEstado(EstadoViaje.CANCELADO);
-            conductor.setEstado(EstadoConductor.AVAILABLE);
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "El viaje no se puede cancelar en su estado actual"
             );
         }
+
+        viaje.setEstado(EstadoViaje.CANCELADO);
+        conductor.setEstado(EstadoConductor.AVAILABLE);
+        List<OfertaViaje> ofertasPendientes =
+                ofertaViajeRepository.findByViaje_IdAndEstado(
+                        viajeId,
+                        EstadoOferta.PENDIENTE
+                );
+
+        for (OfertaViaje oferta : ofertasPendientes) {
+            oferta.setEstado(EstadoOferta.CANCELADA);
+        }
+
+        ofertaViajeRepository.saveAll(ofertasPendientes);
+        usuarioRepository.save(conductor);
+
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder().id(viajeGuardado.getId())
-                .clienteId(
-                        viajeGuardado.getCliente() != null
-                                ? viajeGuardado.getCliente().getId()
-                                : null
-                )
-                .conductorId(viajeGuardado.getConductor().getId())
-                .origen(viajeGuardado.getOrigen()).destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
-                .latitudOrigen(viajeGuardado.getLatitudOrigen())
-                .longitudOrigen(viajeGuardado.getLongitudOrigen())
-                .telefonoPasajero(viajeGuardado.getTelefonoPasajero())
-                .nombrePasajero(viajeGuardado.getNombrePasajero())
-                .llamadaVapiId(viajeGuardado.getLlamadaVapiId())
-                .build();
+        return obtenerViajePorId(viajeGuardado.getId());
 
     }
 
