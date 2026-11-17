@@ -130,7 +130,7 @@ public class ViajeServicio {
     }
 
     public ViajeDTO obtenerViajePorId(Long id) {
-        Viaje viaje = viajeRepository.findById(id).orElseThrow(() -> new RuntimeException("Viaje no encontrado"));
+        Viaje viaje = viajeRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Viaje no encontrado"));
 
         return ViajeDTO.builder()
                 .id(viaje.getId())
@@ -151,13 +151,29 @@ public class ViajeServicio {
         return viajeRepository.findAll();
     }
 
+    @Transactional
     public ViajeDTO asignarConductor(Long viajeId, Long conductorId) {
-        Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(() -> new RuntimeException("El viaje no existe."));
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "El viaje no existe."
+                ));
 
-        Usuario conductor = usuarioRepository.findById(conductorId).orElseThrow(() -> new RuntimeException("El conductor no existe."));
+        Usuario conductor = usuarioRepository.buscarPorIdConBloqueo(conductorId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "El conductor no existe."
+                ));
 
         if (conductor.getTipo() != TipoUsuario.CONDUCTOR) {
             throw new RuntimeException("El usuario indicado no es un conductor.");
+        }
+
+        if (conductor.getEstado() != EstadoConductor.AVAILABLE) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El conductor no está disponible para recibir viajes."
+            );
         }
 
         if (viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR) {
