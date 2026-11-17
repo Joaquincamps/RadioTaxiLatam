@@ -351,22 +351,27 @@ public class ViajeServicio {
         }
 
         if (conductor.getTipo() != TipoUsuario.CONDUCTOR) {
-            throw new RuntimeException("El usuario indicado no es un conductor.");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El usuario indicado no es un conductor."
+            );
         }
 
-        if (!viaje.getConductor().getId().equals(conductor.getId())) {
-            throw new RuntimeException("El conductor asignado no coincide con la aceptación.");
+        if (viaje.getEstado() == EstadoViaje.CANCELADO) {
+            return obtenerViajePorId(viajeId);
         }
 
-        if (viaje.getEstado() == EstadoViaje.ACEPTADO ||
-               viaje.getEstado() == EstadoViaje.LLEGADO ||
-                viaje.getEstado() == EstadoViaje.EN_CURSO ||
-                viaje.getEstado() == EstadoViaje.ASIGNADO) {
+        if (viaje.getEstado() != EstadoViaje.ASIGNADO
+                && viaje.getEstado() != EstadoViaje.ACEPTADO
+                && viaje.getEstado() != EstadoViaje.LLEGADO
+                && viaje.getEstado() != EstadoViaje.EN_CURSO) {
             viaje.setEstado(EstadoViaje.CANCELADO);
-        } else {
-            throw new RuntimeException("El viaje no se puede cancelar.");
+            conductor.setEstado(EstadoConductor.AVAILABLE);
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El viaje no se puede cancelar en su estado actual"
+            );
         }
-
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
         return ViajeDTO.builder().id(viajeGuardado.getId())
