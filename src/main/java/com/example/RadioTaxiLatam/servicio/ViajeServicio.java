@@ -166,7 +166,10 @@ public class ViajeServicio {
                 ));
 
         if (conductor.getTipo() != TipoUsuario.CONDUCTOR) {
-            throw new RuntimeException("El usuario indicado no es un conductor.");
+         throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El usuario indicado no es un conductor."
+            );
         }
 
         if (conductor.getEstado() != EstadoConductor.AVAILABLE) {
@@ -177,60 +180,74 @@ public class ViajeServicio {
         }
 
         if (viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR) {
-            throw new RuntimeException("El viaje no está buscando conductor.");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El viaje no está buscando conductor."
+            );
         }
 
-        List<Viaje> viajes = viajeRepository.findAll();
-        for (Viaje v : viajes) {
-            if (v.getConductor() != null) {
-                if (v.getConductor().getId().equals(conductorId)) {
-                    if (v.getEstado() == EstadoViaje.ASIGNADO ||
-                            v.getEstado() == EstadoViaje.ACEPTADO ||
-                            v.getEstado() == EstadoViaje.LLEGADO||
-                            v.getEstado() == EstadoViaje.EN_CURSO) {
-                        throw new RuntimeException("No se puede asignar el viaje");
-                    }
-                }
-            }
+        boolean tieneViajeActivo = viajeRepository.existsByConductor_IdAndEstadoIn(
+                conductorId,
+                List.of(
+                        EstadoViaje.ASIGNADO,
+                        EstadoViaje.ACEPTADO,
+                        EstadoViaje.LLEGADO,
+                        EstadoViaje.EN_CURSO
+                )
+        );
+
+        if (tieneViajeActivo) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El conductor ya tiene un viaje activo."
+            );
         }
 
         viaje.setConductor(conductor);
         viaje.setEstado(EstadoViaje.ASIGNADO);
 
+        conductor.setEstado(EstadoConductor.BUSY);
+        usuarioRepository.save(conductor);
+
         Viaje viajeGuardado = viajeRepository.save(viaje);
 
-        return ViajeDTO.builder()
-                .id(viajeGuardado.getId())
-                .clienteId(
-                        viajeGuardado.getCliente() != null
-                                ? viajeGuardado.getCliente().getId()
-                                : null
-                )
-                .conductorId(viajeGuardado.getConductor().getId())
-                .origen(viajeGuardado.getOrigen())
-                .destino(viajeGuardado.getDestino()).estado(viajeGuardado.getEstado())
-                .latitudOrigen(viajeGuardado.getLatitudOrigen())
-                .longitudOrigen(viajeGuardado.getLongitudOrigen())
-                .telefonoPasajero(viajeGuardado.getTelefonoPasajero())
-                .nombrePasajero(viajeGuardado.getNombrePasajero())
-                .llamadaVapiId(viajeGuardado.getLlamadaVapiId())
-                .build();
+        return obtenerViajePorId(viajeGuardado.getId());
     }
 
+    @Transactional
     public ViajeDTO aceptarViaje(Long viajeId, Long conductorId) {
-        Viaje viaje = viajeRepository.findById(viajeId).orElseThrow(() -> new RuntimeException("El viaje no existe."));
-        Usuario conductor = usuarioRepository.findById(conductorId).orElseThrow(() -> new RuntimeException("El conductor no existe."));
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "El viaje no existe."
+                ));
+
+        Usuario conductor = usuarioRepository.buscarPorIdConBloqueo(conductorId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "El conductor no existe."
+                ));
 
         if (conductor.getTipo() != TipoUsuario.CONDUCTOR) {
-            throw new RuntimeException("El usuario indicado no es un conductor.");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El usuario indicado no es un conductor."
+            );
         }
 
         if (viaje.getEstado() != EstadoViaje.ASIGNADO) {
-            throw new RuntimeException("El viaje no está asignado a ningún conductor.");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El viaje no está asignado a ningún conductor."
+            );
         }
 
-        if (!viaje.getConductor().getId().equals(conductor.getId())) {
-            throw new RuntimeException("El conductor asignado no coincide con la aceptación.");
+        if (viaje.getConductor() == null
+                || !viaje.getConductor().getId().equals(conductorId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El viaje no pertenece a este conductor."
+            );
         }
 
         viaje.setEstado(EstadoViaje.ACEPTADO);
