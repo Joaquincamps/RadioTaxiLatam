@@ -21,6 +21,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Long> {
 
     Usuario findByTelefono(String telefono);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM Usuario u WHERE u.telefono = :telefono")
+    Optional<Usuario> buscarPorTelefonoConBloqueo(@Param("telefono") String telefono);
+
     List<Usuario>
     findByTipoAndEstadoAndLatitudIsNotNullAndLongitudIsNotNullAndUltimaUbicacionAfter(
             TipoUsuario tipo,

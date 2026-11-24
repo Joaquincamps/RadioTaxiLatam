@@ -11,6 +11,7 @@ import com.example.RadioTaxiLatam.repositorio.ViajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -66,19 +67,20 @@ public class UsuarioServicio {
         usuarioRepository.deleteById(id);
     }
 
+    @Transactional
     public ConductorDTO login(LoginDTO loginDTO) {
-        Usuario usuario = usuarioRepository.findByTelefono(loginDTO.getMovil());
-
-        if (usuario == null) {
-            throw new RuntimeException("Telefono o contraseña incorrecta.");
-        }
+        Usuario usuario = usuarioRepository.buscarPorTelefonoConBloqueo(loginDTO.getMovil())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Teléfono o contraseña incorrectos."
+                ));
 
         if (usuario.getTipo() != TipoUsuario.CONDUCTOR) {
-            throw new RuntimeException("El usuario no es conductor");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"El usuario no es conductor");
         }
 
         if (!loginDTO.getPassword().equals(usuario.getPassword())) {
-            throw new RuntimeException("Contraseña o telefono incorrecto.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Telefono o contraseña  incorrectos.");
         }
 
         if (usuario.getEstado() != EstadoConductor.BUSY) {
@@ -95,6 +97,7 @@ public class UsuarioServicio {
                 .build();
     }
 
+    @Transactional
     public ConductorDTO cambiarDisponibilidad(Long id, EstadoConductorDTO estadoConductorDTO) {
         if (estadoConductorDTO == null ||
                 estadoConductorDTO.getEstado() == null) {
@@ -112,10 +115,11 @@ public class UsuarioServicio {
             );
         }
 
-        Usuario usuario = usuarioRepository.findById(id).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND
-                        , "Usuario no encontrado.")
-        );
+        Usuario usuario = usuarioRepository.buscarPorIdConBloqueo(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Usuario no encontrado."
+                ));
 
         if (!usuario.getTipo().equals(TipoUsuario.CONDUCTOR)) {
             throw new ResponseStatusException(
@@ -154,8 +158,9 @@ public class UsuarioServicio {
                 .build();
     }
 
+    @Transactional
     public UbicacionDTO enviarUbicacion(Long id, UbicacionDTO ubicacionDTO) {
-        Usuario usuario = usuarioRepository.findById(id).orElseThrow(
+        Usuario usuario = usuarioRepository.buscarPorIdConBloqueo(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND
                         , "Usuario no encontrado.")
         );
