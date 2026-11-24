@@ -79,19 +79,41 @@ public class OfertaViajeServicio {
 
         Instant ahora = Instant.now();
 
-        boolean tieneOfertaVigente =
-                ofertaViajeRepository.existsByViaje_IdAndEstadoAndExpiraEnAfter(
+        boolean tieneOfertaPendiente =
+                ofertaViajeRepository.existsByViaje_IdAndEstado(
                         viaje.getId(),
-                        EstadoOferta.PENDIENTE,
-                        ahora
+                        EstadoOferta.PENDIENTE
                 );
 
-        if (tieneOfertaVigente) {
+        if (tieneOfertaPendiente) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "El viaje ya tiene una oferta pendiente vigente."
+                    "El viaje ya tiene una oferta pendiente."
             );
         }
+
+        if (ofertaViajeRepository.existsByViaje_IdAndConductor_IdAndRondaBusqueda(
+                viajeId,
+                conductorId,
+                viaje.getRondaBusqueda()
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El conductor ya recibió una oferta en esta ronda."
+            );
+        }
+
+        if (ofertaViajeRepository.existsByViaje_IdAndConductor_IdAndEstado(
+                viajeId,
+                conductorId,
+                EstadoOferta.DEVUELTA
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El conductor ya devolvió este viaje."
+            );
+        }
+
 
         OfertaViaje crearOfertaFinal = new OfertaViaje();
         crearOfertaFinal.setViaje(viaje);
@@ -99,6 +121,7 @@ public class OfertaViajeServicio {
         crearOfertaFinal.setCreadaEn(ahora);
         crearOfertaFinal.setExpiraEn(ahora.plusSeconds(20));
         crearOfertaFinal.setEstado(EstadoOferta.PENDIENTE);
+        crearOfertaFinal.setRondaBusqueda(viaje.getRondaBusqueda());
 
         ofertaViajeRepository.save(crearOfertaFinal);
 
@@ -464,5 +487,86 @@ public class OfertaViajeServicio {
         usuarioRepository.save(conductor);
 
         return viaje.getId();
+    }
+
+    @Transactional
+    public void prepararSiguienteRonda(Long viajeId) {
+
+        Viaje viaje = viajeRepository.buscarPorIdConBloqueo(viajeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Viaje no encontrado."
+                ));
+
+        if (viaje.getEstado() != EstadoViaje.BUSCANDO_CONDUCTOR
+                || viaje.getConductor() != null) {
+            return;
+        }
+
+        if (ofertaViajeRepository.existsByViaje_IdAndEstado(
+                viajeId,
+                EstadoOferta.PENDIENTE
+        )) {
+            return;
+        }
+
+        Instant ahora = Instant.now();
+
+        List<Usuario> candidatos =
+                usuarioRepository.findByTipoAndEstadoAndLatitudIsNotNullAndLongitudIsNotNullAndUltimaUbicacionAfter(
+                        TipoUsuario.CONDUCTOR,
+                        EstadoConductor.AVAILABLE,
+                        ahora.minusSeconds(120)
+                );
+
+        if (candidatos.isEmpty()) {
+            return;
+        }
+
+        boolean hayCandidatosParaRepetir = false;
+
+        for (Usuario candidato : candidatos) {
+
+            if (ofertaViajeRepository.existsByViaje_IdAndConductor_IdAndEstado(
+                    viajeId,
+                    candidato.getId(),
+                    EstadoOferta.DEVUELTA
+            )) {
+                continue;
+            }
+
+            hayCandidatosParaRepetir = true;
+
+            if (!ofertaViajeRepository.existsByViaje_IdAndConductor_IdAndRondaBusqueda(
+                    viajeId,
+                    candidato.getId(),
+                    viaje.getRondaBusqueda()
+            )) {
+                viaje.setProximaRondaEn(null);
+                viajeRepository.save(viaje);
+                return;
+            }
+        }
+
+        if (!hayCandidatosParaRepetir) {
+            return;
+        }
+
+        if (viaje.getProximaRondaEn() == null) {
+            viaje.setProximaRondaEn(ahora.plusSeconds(60));
+            viajeRepository.save(viaje);
+            return;
+        }
+
+        if (ahora.isBefore(viaje.getProximaRondaEn())) {
+            int rondaActual = viaje.getRondaBusqueda() == null
+                    ? 1
+                    : viaje.getRondaBusqueda();
+
+            viaje.setRondaBusqueda(rondaActual + 1);
+            viaje.setProximaRondaEn(null);
+
+            viajeRepository.save(viaje);
+        }
     }
 }

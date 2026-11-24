@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -20,7 +21,10 @@ public interface ViajeRepository extends JpaRepository<Viaje, Long> {
 
     Optional<Viaje> findByLlamadaVapiId(String llamadaVapiId);
 
+    List<Viaje> findByEstadoAndConductorIsNull(EstadoViaje estado);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT v FROM Viaje v WHERE v.id = :id")
     Optional<Viaje> buscarPorIdConBloqueo(@Param("id") Long id);
+
 }

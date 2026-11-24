@@ -24,9 +24,26 @@ public interface OfertaViajeRepository extends JpaRepository<OfertaViaje, Long> 
             Instant ahora
     );
 
+    boolean existsByViaje_IdAndEstado(
+            Long viajeId,
+            EstadoOferta estado
+    );
+
     boolean existsByViaje_IdAndConductor_Id(
             Long viajeId,
             Long conductorId
+    );
+
+    boolean existsByViaje_IdAndConductor_IdAndRondaBusqueda(
+            Long viajeId,
+            Long conductorId,
+            Integer rondaBusqueda
+    );
+
+    boolean existsByViaje_IdAndConductor_IdAndEstado(
+            Long viajeId,
+            Long conductorId,
+            EstadoOferta estado
     );
 
     List<OfertaViaje> findByEstadoAndExpiraEnLessThanEqual(

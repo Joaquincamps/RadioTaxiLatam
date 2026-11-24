@@ -77,9 +77,19 @@ public class AsignacionViajeServicio {
         double menorDistancia = Double.POSITIVE_INFINITY;
 
         for (Usuario candidato : candidatos) {
-            boolean tieneOferta = ofertaViajeRepository.existsByViaje_IdAndConductor_Id(viajeId, candidato.getId());
+            if (ofertaViajeRepository.existsByViaje_IdAndConductor_IdAndRondaBusqueda(
+                    viajeId,
+                    candidato.getId(),
+                    viaje.getRondaBusqueda()
+            )) {
+                continue;
+            }
 
-            if (tieneOferta) {
+            if (ofertaViajeRepository.existsByViaje_IdAndConductor_IdAndEstado(
+                    viajeId,
+                    candidato.getId(),
+                    EstadoOferta.DEVUELTA
+            )) {
                 continue;
             }
 
@@ -127,6 +137,36 @@ public class AsignacionViajeServicio {
         );
 
         ofrecerViaje(viajeId);
+    }
+
+    private boolean tieneOfertaPendiente(Long viajeId) {
+        return ofertaViajeRepository.existsByViaje_IdAndEstado(
+                viajeId,
+                EstadoOferta.PENDIENTE
+        );
+    }
+
+    @Scheduled(fixedDelay = 5000)
+    public void recuperarViajesSinOferta() {
+
+        List<Viaje> viajesPendientes =
+                viajeRepository.findByEstadoAndConductorIsNull(
+                        EstadoViaje.BUSCANDO_CONDUCTOR
+                );
+
+        for (Viaje viaje : viajesPendientes) {
+            try {
+                if (!tieneOfertaPendiente(viaje.getId())) {
+                    ofrecerViaje(viaje.getId());
+                }
+            } catch (RuntimeException e) {
+                log.error(
+                        "Error al recuperar el viaje sin oferta: {}",
+                        viaje.getId(),
+                        e
+                );
+            }
+        }
     }
 
     @Scheduled(fixedDelay = 2000)

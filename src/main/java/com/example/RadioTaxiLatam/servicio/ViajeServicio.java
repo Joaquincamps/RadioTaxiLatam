@@ -88,7 +88,11 @@ public class ViajeServicio {
             );
         }
 
-        Viaje viaje = Viaje.builder().origen(viajeDTO.getOrigen()).destino(viajeDTO.getDestino()).estado(EstadoViaje.BUSCANDO_CONDUCTOR)
+        Viaje viaje = Viaje.builder()
+                .origen(viajeDTO.getOrigen())
+                .destino(viajeDTO.getDestino())
+                .estado(EstadoViaje.BUSCANDO_CONDUCTOR)
+                .rondaBusqueda(1)
                 .latitudOrigen(viajeDTO.getLatitudOrigen())
                 .longitudOrigen(viajeDTO.getLongitudOrigen())
                 .telefonoPasajero(viajeDTO.getTelefonoPasajero())

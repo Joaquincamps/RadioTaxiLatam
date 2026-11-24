@@ -36,5 +36,7 @@ public class OfertaViaje {
     @Column(nullable = false)
     private EstadoOferta estado;
 
+    private Integer rondaBusqueda;
+
 
 }

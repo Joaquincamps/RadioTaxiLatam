@@ -49,5 +49,9 @@ public class Viaje {
 
     private Instant creadoEn;
 
+    private Integer rondaBusqueda;
+
+    private Instant proximaRondaEn;
+
 
 }
