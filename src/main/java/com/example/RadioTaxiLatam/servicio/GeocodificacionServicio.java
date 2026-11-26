@@ -20,9 +20,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class GeocodificacionServicio {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(GeocodificacionServicio.class);
 
     @Value("${geocoding.url}")
     private String url;
@@ -129,6 +134,10 @@ public class GeocodificacionServicio {
 
             cache.put(claveCache, resultados);
         }
+
+        log.info("Geocodificacion: direccion={}, coincidencias={}",
+                direccionLimpia,
+                resultados.size());
 
         if (resultados.isEmpty()) {
             throw new ResponseStatusException(
