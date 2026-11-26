@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
+import com.example.RadioTaxiLatam.Dto.CrearConductorDTO;
 
 import java.time.Instant;
 import java.util.List;
@@ -205,5 +206,50 @@ public class UsuarioServicio {
         usuario.setUltimaUbicacion(Instant.now());
         usuarioRepository.save(usuario);
         return ubicacionDTO;
+    }
+
+    @Transactional
+    public ConductorDTO crearConductor(CrearConductorDTO dto) {
+
+        if (dto == null
+                || dto.getNombre() == null || dto.getNombre().isBlank()
+                || dto.getTelefono() == null || dto.getTelefono().isBlank()
+                || dto.getPassword() == null || dto.getPassword().isBlank()
+                || dto.getMatricula() == null || dto.getMatricula().isBlank()
+                || dto.getModeloVehiculo() == null || dto.getModeloVehiculo().isBlank()) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Todos los campos del conductor son obligatorios."
+            );
+        }
+
+        if (usuarioRepository.findByTelefono(dto.getTelefono()) != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Ya existe un usuario con este teléfono."
+            );
+        }
+
+        Usuario conductor = new Usuario();
+
+        conductor.setNombre(dto.getNombre());
+        conductor.setTelefono(dto.getTelefono());
+        conductor.setPassword(dto.getPassword());
+        conductor.setMatricula(dto.getMatricula());
+        conductor.setModeloVehiculo(dto.getModeloVehiculo());
+        conductor.setTipo(TipoUsuario.CONDUCTOR);
+        conductor.setEstado(EstadoConductor.OFFLINE);
+
+        Usuario conductorGuardado = usuarioRepository.save(conductor);
+
+        return ConductorDTO.builder()
+                .id(conductorGuardado.getId())
+                .nombre(conductorGuardado.getNombre())
+                .telefono(conductorGuardado.getTelefono())
+                .matricula(conductorGuardado.getMatricula())
+                .modeloVehiculo(conductorGuardado.getModeloVehiculo())
+                .estado(conductorGuardado.getEstado())
+                .build();
     }
 }

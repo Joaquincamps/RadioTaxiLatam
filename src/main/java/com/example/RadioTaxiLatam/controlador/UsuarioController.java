@@ -4,9 +4,11 @@ import com.example.RadioTaxiLatam.Dto.*;
 import com.example.RadioTaxiLatam.entidades.Usuario;
 import com.example.RadioTaxiLatam.servicio.UsuarioServicio;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.example.RadioTaxiLatam.Dto.CrearConductorDTO;
+import com.example.RadioTaxiLatam.Dto.ConductorDTO;
 import java.util.List;
 
 @CrossOrigin(origins = "*")
@@ -53,5 +55,13 @@ public class UsuarioController {
     public ResponseEntity<UbicacionDTO> enviarUbicacion(@PathVariable Long id,
                                                         @RequestBody UbicacionDTO ubicacionDTO) {
         return ResponseEntity.ok(usuarioServicio.enviarUbicacion(id, ubicacionDTO));
+    }
+
+    @PostMapping("/crear/conductor")
+    public ResponseEntity<ConductorDTO> crearConductor(
+            @RequestBody CrearConductorDTO dto) {
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(usuarioServicio.crearConductor(dto));
     }
 }
